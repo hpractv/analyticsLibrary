@@ -32,7 +32,7 @@ namespace analyticsLibrary.dbObjects
             return table;
         }
 
-        public static object[] addTableRecord<t>(t record)
+        public static object[] addTableRecord<t>(t data)
         {
             var type = typeof(t);
             var properties = getColumnProperties(type);

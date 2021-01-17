@@ -65,15 +65,15 @@ namespace analyticsLibrary.sas
             return false;
         }
 
-        private List<data<object>> _records;
+        private List<data<object>> _data;
 
         public IEnumerable<data<object>> records
         {
             get
             {
-                if (_records == null)
+                if (_data == null)
                 {
-                    _records = new List<data<object>>();
+                    _data = new List<data<object>>();
                     execute((rs) =>
                     {
                         if (_header == null)
@@ -81,12 +81,12 @@ namespace analyticsLibrary.sas
 
                         while (!rs.EOF)
                         {
-                            _records.Add(new record<object>(this, rs.Fields.Cast<Field>().Select(f => f.Value).ToArray()));
+                            _data.Add(new data<object>(this, rs.Fields.Cast<Field>().Select(f => f.Value).ToArray()));
                             rs.MoveNext();
                         }
                     });
                 }
-                return _records.ToArray();
+                return _data.ToArray();
             }
         }
 

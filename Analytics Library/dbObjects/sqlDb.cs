@@ -54,8 +54,9 @@ namespace analyticsLibrary.dbObjects
 
         private void withImpersonate(Action runMethod)
         {
-            using (Impersonation.LogonUser(sqlLogin.domain, sqlLogin.userId, sqlLogin.password, LogonType.NewCredentials))
-                runMethod();
+            Impersonation.RunAsUser(
+                new UserCredentials(sqlLogin.domain, sqlLogin.userId, sqlLogin.password),
+                LogonType.NewCredentials, runMethod);
         }
 
         public void executeStatment(string db, string sql)
