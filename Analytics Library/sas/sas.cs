@@ -65,15 +65,15 @@ namespace analyticsLibrary.sas
             return false;
         }
 
-        private List<record<object>> _records;
+        private List<data<object>> _records;
 
-        public IEnumerable<record<object>> records
+        public IEnumerable<data<object>> records
         {
             get
             {
                 if (_records == null)
                 {
-                    _records = new List<record<object>>();
+                    _records = new List<data<object>>();
                     execute((rs) =>
                     {
                         if (_header == null)

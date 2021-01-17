@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Analytics_Library</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="EntityFramework" Version="6.4.4" />
+    <PackageReference Include="EPPlus" Version="5.5.1" />
+    <PackageReference Include="Oracle.ManagedDataAccess" Version="19.10.1" />
+    <PackageReference Include="SimpleImpersonation" Version="3.0.0" />
+    <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
+    <PackageReference Include="OO_DBMS.ADODBCoreWrapper" Version="1.1.49" />
+  </ItemGroup>
+
+</Project>

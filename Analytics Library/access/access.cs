@@ -9,10 +9,11 @@ namespace analyticsLibrary.access
     public class access
     {
         public string filePath { get; private set; }
+
         public access(string filePath) => this.filePath = filePath;
 
-
         private OleDbConnection _connection;
+
         private OleDbConnection connection
         {
             get
@@ -36,7 +37,6 @@ namespace analyticsLibrary.access
             return results.Rows.Cast<DataRow>();
         }
 
-
         public IEnumerable<table> tablesByName(string tableName = null)
         {
             var results = (IEnumerable<DataRow>)null;
@@ -50,7 +50,6 @@ namespace analyticsLibrary.access
             }
             finally
             {
-
                 connection.Close();
             }
 
@@ -89,20 +88,18 @@ namespace analyticsLibrary.access
                     nullable = c["is_nullable"].ToString().ToUpper() == "TRUE" ? true : false,
                 });
         }
+
         public IEnumerable<column> columnsByTable(string tableName = null)
         {
-
             return columns()
                 ?.Where(r => tableName == null || (tableName != null && r.parentTable.ToLower().Contains(tableName.ToLower())));
-
         }
+
         public IEnumerable<column> columnsByName(string columnName = null)
         {
-
             return columns()
                 ?.Where(r => columnName == null || (columnName != null && r.name.ToLower().Contains(columnName.ToLower())));
         }
-
 
         public static dataTypeEnum dataTypeFromInt(int? type)
         {
@@ -112,13 +109,16 @@ namespace analyticsLibrary.access
                 case 20:
                     returnType = dataTypeEnum.bigintType;
                     break;
+
                 case 11:
                     returnType = dataTypeEnum.bitType;
                     break;
+
                 case 129:
                 case 130:
                     returnType = dataTypeEnum.charType;
                     break;
+
                 case 7:
                 case 64:
                 case 133:
@@ -126,30 +126,37 @@ namespace analyticsLibrary.access
                 case 135:
                     returnType = dataTypeEnum.datetimeType;
                     break;
+
                 case 131:
                     returnType = dataTypeEnum.decimalType;
                     break;
+
                 case 4:
                 case 5:
                     returnType = dataTypeEnum.floatType;
                     break;
+
                 case 3:
                 case 19:
                     returnType = dataTypeEnum.intType;
                     break;
+
                 case 6:
                     returnType = dataTypeEnum.moneyType;
                     break;
+
                 case 2:
                 case 16:
                 case 17:
                 case 18:
                     returnType = dataTypeEnum.tinyintType;
                     break;
+
                 case 200:
                 case 201:
                     returnType = dataTypeEnum.varcharType;
                     break;
+
                 case null:
                 default:
                     returnType = dataTypeEnum.unknown;
@@ -157,6 +164,5 @@ namespace analyticsLibrary.access
             }
             return returnType;
         }
-
     }
 }

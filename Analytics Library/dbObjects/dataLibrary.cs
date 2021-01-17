@@ -1,6 +1,6 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
-using System.Data.Linq.Mapping;
 using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection;
@@ -31,12 +31,14 @@ namespace analyticsLibrary.dbObjects
             }
             return table;
         }
+
         public static object[] addTableRecord<t>(t record)
         {
             var type = typeof(t);
             var properties = getColumnProperties(type);
-            return properties.Select(property => GetPropertyValue(property.GetValue(record, null))).ToArray();
+            return properties.Select(property => GetPropertyValue(property.GetValue(data, null))).ToArray();
         }
+
         public static PropertyInfo[] getColumnProperties(Type type)
         {
             var properties = type.GetProperties()
@@ -45,20 +47,23 @@ namespace analyticsLibrary.dbObjects
                 .ToArray();
             return properties;
         }
-        
+
         public static void pushBulkCopyTable<t>(string server, string dataBase, DataTable table)
         {
             pushBulkCopyTable<t>(server, dataBase, null, table);
         }
+
         public static void pushBulkCopyTable<t>(string server, string dataBase, string schema, DataTable table)
         {
             var connection = new SqlConnection(string.Format(connectionString, server, dataBase));
             pushBulkCopyTable<t>(connection, schema, table, true);
         }
+
         public static void pushBulkCopyTable<t>(SqlConnection connection, string schema, DataTable table)
         {
             pushBulkCopyTable<t>(connection, schema, table, false);
         }
+
         public static void pushBulkCopyTable<t>(SqlConnection connection, string schema, DataTable table, bool disposeAndCloseConnection)
         {
             var type = typeof(t);
@@ -67,7 +72,7 @@ namespace analyticsLibrary.dbObjects
             try
             {
                 bulkCopy.BulkCopyTimeout = 0;
-                if(connection.State != ConnectionState.Open)
+                if (connection.State != ConnectionState.Open)
                     connection.Open();
                 bulkCopy.WriteToServer(table);
                 bulkCopy.Close();
@@ -80,9 +85,7 @@ namespace analyticsLibrary.dbObjects
                         connection.Close();
                     connection.Dispose();
                 }
-
             }
-
         }
 
         public static bool EventTypeFilter(System.Reflection.PropertyInfo p)
@@ -98,6 +101,7 @@ namespace analyticsLibrary.dbObjects
 
             return false;
         }
+
         public static object GetPropertyValue(object o)
         {
             if (o == null)

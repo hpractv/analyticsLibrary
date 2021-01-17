@@ -13,7 +13,7 @@ namespace analyticsLibrary.library
 
         private bool _hasHeader;
 
-        private StreamReader _stream ;
+        private StreamReader _stream;
 
         public csvStream(string file) :
             this(file, ',', true)
@@ -48,7 +48,7 @@ namespace analyticsLibrary.library
                 {
                     _header = firstRow.index();
                     for (int i = 0; i < _header.Length; i++)
-                        _header[i].value =  _header[i].value ?? $"Column{_header[i].index+1}";
+                        _header[i].value = _header[i].value ?? $"Column{_header[i].index + 1}";
                 }
                 else
                 {
@@ -65,7 +65,7 @@ namespace analyticsLibrary.library
                             "0";
 
                     _header = record
-                        .Select(r => $"Column{(r.index+1).ToString(format)}")
+                        .Select(r => $"Column{(r.index + 1).ToString(format)}")
                         .index();
                 }
                 headerStream.Close();
@@ -81,7 +81,7 @@ namespace analyticsLibrary.library
                 return _header.Select(h => h.value);
             }
         }
-        
+
         public bool keyExists(string key) => keyExists(key, out var index);
 
         public bool keyExists(string key, out int index)
@@ -103,25 +103,28 @@ namespace analyticsLibrary.library
         }
 
         private int _recordCount = 1;
-        public int recordCount { 
+
+        public int recordCount
+        {
             get => _recordCount;
             private set => _recordCount = value;
         }
-        public record<string> nextRecord
+
+        public data<string> nextRecord
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (!endOfFile)
                 {
-                    var record = new record<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
-                    if(recordCount++ == 1 && _hasHeader)
-                        record = new record<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
+                    var data = new data<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
+                    if (recordCount++ == 1 && _hasHeader)
+                        data = new data<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
 
-                    return record;
+                    return data;
                 }
 
-                return default(record<string>);
+                return default(data<string>);
             }
         }
 

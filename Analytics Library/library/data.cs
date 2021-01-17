@@ -3,11 +3,11 @@ using System.Linq;
 
 namespace analyticsLibrary.library
 {
-    public class record<t>
+    public class data<t>
     {
         internal IKeyIndex parent { get; private set; }
 
-        public record(IKeyIndex parent, t[] values)
+        public data(IKeyIndex parent, t[] values)
         {
             this.parent = parent;
             this.values = values;

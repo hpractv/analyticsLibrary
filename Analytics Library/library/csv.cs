@@ -20,7 +20,7 @@ namespace analyticsLibrary.library
                 {
                     _fieldMaxLengths = new int[header.Count()];
 
-                    records.forEach(r =>
+                    data.forEach(r =>
                     {
                         for (var i = 0; i < header.Count(); i++)
                         {
@@ -72,24 +72,24 @@ namespace analyticsLibrary.library
                 {
                     _header = firstRow.index();
                     for (int i = 0; i < _header.Length; i++)
-                        _header[i].value =  _header[i].value ?? $"Column{_header[i].index+1}";
+                        _header[i].value = _header[i].value ?? $"Column{_header[i].index + 1}";
                 }
                 else
                 {
-                    var record = firstRow
+                    var data = firstRow
                         .index();
 
-                    var format = record.Length < 10 ?
+                    var format = data.Length < 10 ?
                             "0" :
-                        record.Length < 100 ?
+                        data.Length < 100 ?
                             "00" :
-                        record.Length < 1000 ?
+                        data.Length < 1000 ?
                             "000" :
                             //else
                             "0";
 
-                    _header = record
-                        .Select(r => $"Column{(r.index+1).ToString(format)}")
+                    _header = data
+                        .Select(r => $"Column{(r.index + 1).ToString(format)}")
                         .index();
                 }
                 stream.Close();
@@ -108,7 +108,7 @@ namespace analyticsLibrary.library
 
         public IEnumerable<int> lineCounts
         {
-            get => records.Select(r => r.values.Length).Distinct();
+            get => data.Select(r => r.values.Length).Distinct();
         }
 
         public bool keyExists(string key) => keyExists(key, out var index);
@@ -126,22 +126,22 @@ namespace analyticsLibrary.library
             return false;
         }
 
-        private List<record<string>> _records;
+        private List<data<string>> _data;
 
-        public IEnumerable<record<string>> records
+        public IEnumerable<data<string>> data
         {
             get
             {
                 if (_header == null) buildHeader();
-                if (_records == null)
+                if (_data == null)
                 {
-                    _records = new List<record<string>>();
+                    _data = new List<data<string>>();
 
                     var stream = new StreamReader(this._file);
                     var addHeader = _hasHeader;
                     while (stream.Peek() > -1)
                     {
-                        var record = new record<string>(this, stream.ReadLine().fromCsv(_delimeter));
+                        var record = new data<string>(this, stream.ReadLine().fromCsv(_delimeter));
 
                         if (addHeader)
                         {
@@ -150,11 +150,11 @@ namespace analyticsLibrary.library
                         }
                         else
                         {
-                            _records.Add(record);
+                            _data.Add(record);
                         }
                     }
                 }
-                return _records.ToArray();
+                return _data.ToArray();
             }
         }
     }

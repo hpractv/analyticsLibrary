@@ -20,7 +20,6 @@ namespace analyticsLibrary.library
 
         private StreamReader _stream;
 
-
         public fixedWidthFileStream(string file, int[] positions) :
             this(file, positions, true)
         { }
@@ -31,7 +30,7 @@ namespace analyticsLibrary.library
             this._file = file;
             this._hasHeader = hasHeader;
             this._stream = new StreamReader(this._file);
-    }
+        }
 
         protected indexObject<string>[] _header_lower_case;
         protected indexObject<string>[] _header;
@@ -101,22 +100,23 @@ namespace analyticsLibrary.library
         }
 
         public int recordCount { get; private set; }
-        public record<string> nextRecord
+
+        public data<string> nextRecord
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (!endOfFile)
-                {                  
-                    var record = new record<string>(this, _stream.ReadLine().splitFromPositions(_positions));
+                {
+                    var record = new data<string>(this, _stream.ReadLine().splitFromPositions(_positions));
 
                     if (recordCount++ == 0 && _hasHeader)
-                        record = new record<string>(this, _stream.ReadLine().splitFromPositions(_positions));
+                        record = new data<string>(this, _stream.ReadLine().splitFromPositions(_positions));
 
                     return record;
                 }
 
-                return default(record<string>);
+                return default(data<string>);
             }
         }
 

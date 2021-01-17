@@ -95,22 +95,22 @@ namespace analyticsLibrary.library
             return false;
         }
 
-        protected List<record<string>> _records;
+        protected List<data<string>> _records;
 
-        public IEnumerable<record<string>> records
+        public IEnumerable<data<string>> records
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (_records == null)
                 {
-                    _records = new List<record<string>>();
+                    _records = new List<data<string>>();
 
                     var stream = new StreamReader(this._file);
                     var addHeader = _hasHeader;
                     while (stream.Peek() > -1)
                     {
-                        var record = new record<string>(this, stream.ReadLine().splitFromPositions(_positions));
+                        var record = new data<string>(this, stream.ReadLine().splitFromPositions(_positions));
 
                         if (addHeader)
                         {
