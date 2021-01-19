@@ -93,12 +93,16 @@ namespace analyticsLibrary.sas
         public void execute(Action<Recordset> recordProcess)
         {
             var connection = new Connection();
-            connection.Mode = ConnectModeEnum.adModeRead;
+            connection.Mode = modGlobal.ConnectModeEnum.adModeRead;
             connection.Open($"Provider=sas.LocalProvider;Data Source={_path};");
 
             var rs = new ADODB.Recordset();
-            rs.LockType = LockTypeEnum.adLockReadOnly;
-            rs.Open(_table, connection, CursorTypeEnum.adOpenForwardOnly, LockTypeEnum.adLockReadOnly, (int)CommandTypeEnum.adCmdTableDirect);
+            rs.Open(
+                _table,
+                connection,
+                modGlobal.CursorTypeEnum.adOpenForwardOnly,
+                modGlobal.LockTypeEnum.adLockReadOnly,
+                (int)modGlobal.CommandTypeEnum.adCmdTableDirect);
             recordProcess(rs);
             rs.Close();
             connection.Close();
