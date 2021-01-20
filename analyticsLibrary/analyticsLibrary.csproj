@@ -9,8 +9,8 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>hpractv</Authors>
     <PackageId>analyticsLibrary</PackageId>
-    <Version>1.0.0</Version>
-    <PackageTags>data, analytics</PackageTags>
+    <Version>1.0.1</Version>
+    <PackageTags>analytics, csv, data, excel, oracle, sas, sql server, sybase, statistics</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
