@@ -91,15 +91,11 @@ namespace analyticsLibrary.dbObjects
         public static bool EventTypeFilter(System.Reflection.PropertyInfo p)
         {
             var allowedTypes = new string[] { "ValueType", "Object" };
-            var attribute = Attribute.GetCustomAttribute(p, typeof(AssociationAttribute)) as AssociationAttribute;
 
             if (!allowedTypes.hasValue(p.PropertyType.BaseType.Name) || (p.PropertyType.BaseType.Name == "Object" && p.Name == "EntityKey"))
                 return false;
 
-            if (attribute == null) return true;
-            if (attribute.IsForeignKey == false) return true;
-
-            return false;
+            return true;
         }
 
         public static object GetPropertyValue(object o)

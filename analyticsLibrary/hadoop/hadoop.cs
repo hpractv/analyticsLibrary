@@ -12,38 +12,18 @@ namespace analyticsLibrary.hadoop
 {
     public class hadoopDb
     {
-        private login _login = null;
-        private login login
-        {
-            get
-            {
-                return dbConnection.getLoginDsn(ref _login, string.Empty, _dsn);
-            }
-            set { _login = value; }
-        }
-        private string _dsn = string.Empty;
-        public string schema
-        {
-            get;
-            private set;
-        }
 
-        public hadoopDb(string dsn) :
-            this(dsn, null)
-        { }
-        public hadoopDb(string dsn, string schema)
+        public string userId { get; }
+        public string password { get; }
+        public string dsn { get; }
+        public string schema { get; }
+
+        public hadoopDb(string userId, string password, string dsn, string schema)
         {
-            _dsn = dsn;
+            this.userId = userId;
+            this.password = password;
+            this.dsn = dsn;
             this.schema = schema ?? "default";
-        }
-
-        public void primeLogin()
-        {
-            dbConnection.primeLogin(login, dbConnection.loginType.dsn);
-        }
-        public void primeLogin(string dsn, string userId, string password)
-        {
-            login = dbConnection.primeLogin(dsn, userId, password);
         }
 
         public IEnumerable<DataRow> execute(string sql, Action<IEnumerable<DataRow>> process)
@@ -74,7 +54,7 @@ namespace analyticsLibrary.hadoop
 
         public IEnumerable<DataRow> execute(string sql)
         {
-            var connection = string.Format("dsn={0};uid={1};pwd={2};schema={3}", login.dsn, login.userId, login.password, this.schema);
+            var connection = string.Format("dsn={0};uid={1};pwd={2};schema={3}", this.dsn, this.userId, this.password, this.schema);
 
             var conn = new System.Data.Odbc.OdbcConnection();
             conn.ConnectionString = connection;
@@ -124,7 +104,8 @@ namespace analyticsLibrary.hadoop
         }
     }
 
-    public static class hadoopExtensions {
+    public static class hadoopExtensions
+    {
         public static string toHadoopString(this DateTime value) =>
         $@"from_unixtime(unix_timestamp('{value.ToString("yyyy-MM-dd;HH:mm:ss")}', 'yyyy-MM-dd;HH:mm:ss'))";
     }

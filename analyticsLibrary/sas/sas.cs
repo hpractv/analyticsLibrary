@@ -10,16 +10,13 @@ namespace analyticsLibrary.sas
 {
     public class sas : IKeyIndex
     {
-        private string _path = null;
-        public string path { get => _path; }
-
-        private string _table = null;
-        public string table { get => _table; }
+        public string path { get; }
+        public string table { get; }
 
         public sas(string path)
         {
-            _path = $"{Path.GetDirectoryName(path)}\\";
-            _table = Path.GetFileNameWithoutExtension(path);
+            this.path = $"{Path.GetDirectoryName(path)}\\";
+            this.table = Path.GetFileNameWithoutExtension(path);
         }
 
         private indexObject<string>[] _header_lower_case;
@@ -32,14 +29,14 @@ namespace analyticsLibrary.sas
                 if (_header == null)
                     execute(rs =>
                     {
-                        builHeader(rs.Fields.Cast<Field>());
+                        buildHeader(rs.Fields.Cast<Field>());
                     });
 
                 return _header.Select(v => v.value);
             }
         }
 
-        private void builHeader(IEnumerable<Field> fields)
+        private void buildHeader(IEnumerable<Field> fields)
         {
             _header = fields.Select(f => f.Name).index();
             _header_lower_case = fields.Select(f => f.Name.ToLower()).index();
@@ -52,7 +49,7 @@ namespace analyticsLibrary.sas
             if (_header == null)
                 execute(sr =>
                 {
-                    builHeader(sr.Fields.Cast<Field>());
+                    buildHeader(sr.Fields.Cast<Field>());
                 });
 
             var field = _header_lower_case.SingleOrDefault(v => v.value == key.ToLower());
@@ -77,7 +74,7 @@ namespace analyticsLibrary.sas
                     execute((rs) =>
                     {
                         if (_header == null)
-                            this.builHeader(rs.Fields.Cast<Field>());
+                            this.buildHeader(rs.Fields.Cast<Field>());
 
                         while (!rs.EOF)
                         {
@@ -94,11 +91,11 @@ namespace analyticsLibrary.sas
         {
             var connection = new Connection();
             connection.Mode = modGlobal.ConnectModeEnum.adModeRead;
-            connection.Open($"Provider=sas.LocalProvider;Data Source={_path};");
+            connection.Open($"Provider=sas.LocalProvider;Data Source={this.path};");
 
             var rs = new ADODB.Recordset();
             rs.Open(
-                _table,
+                this.table,
                 connection,
                 modGlobal.CursorTypeEnum.adOpenForwardOnly,
                 modGlobal.LockTypeEnum.adLockReadOnly,

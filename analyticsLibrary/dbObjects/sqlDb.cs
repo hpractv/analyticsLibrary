@@ -11,55 +11,27 @@ namespace analyticsLibrary.dbObjects
 {
     public class sqlDb : IDisposable
     {
-        private login _sqlLogin = null;
+        public string userId { get; }
+        public string password { get; }
+        private string server { get; }
+        private string domain { get; }
 
-        private login sqlLogin
+
+        public sqlDb(string userId, string password, string server, string domain)
         {
-            get { return dbConnection.getLogin(ref _sqlLogin, "SQL", _server, _domain); }
-            set { _sqlLogin = value; }
-        }
-
-        private string _server { get; set; }
-        private string _domain { get; set; }
-
-        public sqlDb(string server) : this(server, string.Empty)
-        {
-        }
-
-        public sqlDb(string server, string domain) : this()
-        {
-            _server = server;
-            _domain = domain;
-        }
-
-        public sqlDb()
-        {
+            this.userId = userId;
+            this.password = password;
+            this.server = server;
+            this.domain = domain;
         }
 
         private SqlConnection _connection = null;
         private string _integratedConnectionString = @"Data Source={0};Initial Catalog={1};Integrated Security=true;";
         private string _sqlConnectionString = @"Data Source={0};Initial Catalog={1};user id={2};password={3};";
 
-        public void primeLogin()
-        {
-            dbConnection.primeLogin(sqlLogin, dbConnection.loginType.server);
-        }
-
-        public void primeLogin(string server, string domain, string userId, string password)
-        {
-            sqlLogin = dbConnection.primeLogin(server, domain, userId, password);
-        }
-
         private void noImpersonate(Action runMethod) => runMethod();
 
-        private void withImpersonate(Action runMethod)
-        {
-            Impersonation.RunAsUser(
-                new UserCredentials(sqlLogin.domain, sqlLogin.userId, sqlLogin.password),
-                LogonType.NewCredentials, runMethod);
-        }
-
-        public void executeStatment(string db, string sql)
+        public void executeStatement(string db, string sql)
         {
             _dbExecute(db, command =>
             {
@@ -81,6 +53,12 @@ namespace analyticsLibrary.dbObjects
             });
 
             return data.Rows.Cast<DataRow>();
+        }
+        private void withImpersonate(Action runMethod)
+        {
+            Impersonation.RunAsUser(
+                new UserCredentials(this.domain, this.userId, this.password),
+                LogonType.NewCredentials, runMethod);
         }
 
         public IEnumerable<t> query<t>(string db, string sql, Func<IEnumerable<DataRow>, IEnumerable<t>> formatData)
@@ -112,13 +90,13 @@ namespace analyticsLibrary.dbObjects
 
         private void _dbExecute(string db, Action<SqlCommand> sqlAction)
         {
-            var onDomain = !string.IsNullOrWhiteSpace(sqlLogin.domain);
-            var connectionString = onDomain ? string.Format(_integratedConnectionString, sqlLogin.server, db) : string.Format(_sqlConnectionString, sqlLogin.server, db, sqlLogin.userId, sqlLogin.password);
+            var onDomain = !string.IsNullOrWhiteSpace(this.domain);
+            var connectionString = onDomain ? string.Format(_integratedConnectionString, this.server, db) : string.Format(_sqlConnectionString, this.server, db, this.userId, this.password);
             var tryCount = 0;
             var tryMax = 20;
             var impersonateWrapper = onDomain ? (Action<Action>)withImpersonate : (Action<Action>)noImpersonate;
 
-            IMPERSONATE:
+        IMPERSONATE:
 
             try
             {

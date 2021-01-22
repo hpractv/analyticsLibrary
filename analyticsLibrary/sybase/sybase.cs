@@ -11,35 +11,19 @@ namespace analyticsLibrary.sybase
 {
     public class sybaseDb
     {
-        private login _login = null;
-        private login login
-        {
-            get
-            {
-                return dbConnection.getLoginDsn(ref _login, string.Empty, _dsn);
-            }
-            set { _login = value; }
-        }
-        private string _dsn = string.Empty;
-        public string dsn { get { return _dsn; } }
-        private string _db = string.Empty;
-        public string database { get { return _db; } }
-        
-        public sybaseDb(string dsn, string database)
-        {
-            _dsn    = dsn;
-            _db     = database;
-        }
 
-        public sybaseDb() { }
+        public string userId { get; }
+        public string password { get; }
+        public string dsn { get; }
+        public string database { get; }
 
-        public void primeLogin()
+
+        public sybaseDb(string userId, string password, string dsn, string database)
         {
-            dbConnection.primeLogin(login, dbConnection.loginType.dsn);
-        }
-        public void primeLogin(string userId, string password)
-        {
-            login = dbConnection.primeLogin(dsn, userId, password);
+            this.userId = userId;
+            this.password = password;
+            this.dsn = dsn;
+            this.database = database;
         }
 
         public IEnumerable<t> execute<t>(string sql, Action<IEnumerable<DataRow>> processData)
@@ -63,7 +47,7 @@ namespace analyticsLibrary.sybase
         }
         public IEnumerable<DataRow> execute(string sql)
         {
-            var connection = $"dsn={login.dsn};uid={login.userId};pwd={login.password};";
+            var connection = $"dsn={this.dsn};uid={this.userId};pwd={this.password};";
 
             var conn = new System.Data.Odbc.OdbcConnection();
             conn.ConnectionString = connection;
@@ -82,7 +66,7 @@ namespace analyticsLibrary.sybase
 
         public IEnumerable<table> tablesByName(string tableName)
         {
-            var tables = this.execute($@"sp_tables '%{tableName}%', 'dbo', '{_db}', ""'TABLE'"";")
+            var tables = this.execute($@"sp_tables '%{tableName}%', 'dbo', '{this.database}', ""'TABLE'"";")
                 .Select(c => new table()
                 {
                     schema = c["table_owner"].ToString(),
@@ -129,7 +113,7 @@ namespace analyticsLibrary.sybase
         {
             var table = new table();
             var columns = this
-                .execute($@"exec sp_columns '%{tableName}%', 'dbo', '{_db}';")
+                .execute($@"exec sp_columns '%{tableName}%', 'dbo', '{this.database}';")
                 .Select(c => new
                 {
                     table_name = c["table_name"].ToString(),

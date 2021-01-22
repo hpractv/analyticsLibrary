@@ -2,14 +2,13 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>analyticsLibrary</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <AssemblyName>analyticsLibrary</AssemblyName>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>hpractv</Authors>
     <PackageId>analyticsLibrary</PackageId>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <PackageTags>analytics, csv, data, excel, oracle, sas, sql server, sybase, statistics</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>

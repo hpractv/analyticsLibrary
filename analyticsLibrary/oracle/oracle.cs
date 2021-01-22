@@ -11,41 +11,23 @@ namespace analyticsLibrary.oracle
 {
     public class oracleDb
     {
-        private login _login = null;
-        private login login
-        {
-            get
-            {
-                return dbConnection.getLoginOracle(ref _login, string.Empty, _server, _service, _port);
-            }
-            set { _login = value; }
-        }
+        public string userId { get; }
+        public string password { get; }
+        public string server { get; }
+        public string service { get; }
+        public int port { get; }
 
-        private string _server;
-        public string server { get { return _server; } }
-        private string _service;
-        public string service { get { return _service; } }
-        private int _port;
-        public int port { get { return _port; } }
-        
-        public oracleDb(string server, string service, int port)
+        public oracleDb(string userName, string password, string server, string service, int port)
             : this()
         {
-            _server  = server;
-            _service = service;
-            _port    = port;
+            this.userId = userName;
+            this.password = password;
+            this.server = server;
+            this.service = service;
+            this.port = port;
         }
 
         public oracleDb() { }
-
-        public void primeLogin()
-        {
-            dbConnection.primeLogin(login, dbConnection.loginType.tns);
-        }
-        public void primeLogin(string userId, string password)
-        {
-            login = dbConnection.primeLogin(server, service, userId, password, port);
-        }
 
         public IEnumerable<t> execute<t>(string sql, Action<IEnumerable<DataRow>> processData)
         {
@@ -69,15 +51,15 @@ namespace analyticsLibrary.oracle
         public IEnumerable<DataRow> execute(string sql)
         {
             var connStr = string.Format(@"Data Source={0};User id={1};Password=""{2}"";"
-		        , string.Format("(DESCRIPTION= (ADDRESS= (PROTOCOL=TCP) (HOST={0}) (PORT={1}) ) (CONNECT_DATA= (SERVER=dedicated) (SERVICE_NAME={2}) (UR=A) ) )"
-                    , login.server, login.port, login.serviceName)
-                , login.userId
-                , login.password);
-            
+                , string.Format("(DESCRIPTION= (ADDRESS= (PROTOCOL=TCP) (HOST={0}) (PORT={1}) ) (CONNECT_DATA= (SERVER=dedicated) (SERVICE_NAME={2}) (UR=A) ) )"
+                    , server, port, service)
+                , userId
+                , password);
+
             var conn = new OracleConnection(connStr);
             conn.Open();
 
-            //trim the sql, becuase oracle can't handle the extra carriage feeds line returns
+            //trim the sql, because oracle can't handle the extra carriage feeds line returns
             var oda = new OracleDataAdapter(sql.Trim(), conn);
             oda.SelectCommand.CommandTimeout = 0;
 
@@ -101,8 +83,8 @@ select owner, table_name
 from  all_tables
 where owner like '%{0}%' and
     table_name like '%{1}%'
-"               , normalizeCase ? schema.ToUpper() : schema
-                , normalizeCase ? tableName.ToUpper() : tableName ))
+", normalizeCase ? schema.ToUpper() : schema
+                , normalizeCase ? tableName.ToUpper() : tableName))
                 .Select(c => new table()
                 {
                     schema = c["owner"].ToString(),
@@ -122,7 +104,7 @@ select owner, table_name, column_name, data_type, data_length, nullable
 from all_tab_cols
 where owner like '%{0}%' and
   column_name like '%{1}%'
-"               , normalizeCase ? schema.ToUpper() : schema
+", normalizeCase ? schema.ToUpper() : schema
                 , normalizeCase ? columnName.ToUpper() : columnName))
             .Select(c => new
             {
@@ -141,7 +123,7 @@ where owner like '%{0}%' and
 
             foreach (var t in tables)
             {
-                var tc =  columns.Where(c => c.table_name == t.name)
+                var tc = columns.Where(c => c.table_name == t.name)
                 .Select(c => new column()
                 {
                     parentTable = t.name,
@@ -173,13 +155,13 @@ where owner like '%{0}%' and
                 , normalizeCase ? schema.ToUpper() : schema
                 , normalizeCase ? tableName.ToUpper() : tableName))
                 .Select(c => new
-                    {
-                        table_name = c["table_name"].ToString(),
-                        name = c["column_name"].ToString(),
-                        dataType = sqlDb.dataTypeFromString(c["data_type"].ToString()),
-                        length = c.IsNull("data_length") ? (decimal?)null : (decimal)c["data_length"],
-                        nullable = c["nullable"].ToString().ToUpper() == "YES" ? true : false,
-                    });
+                {
+                    table_name = c["table_name"].ToString(),
+                    name = c["column_name"].ToString(),
+                    dataType = sqlDb.dataTypeFromString(c["data_type"].ToString()),
+                    length = c.IsNull("data_length") ? (decimal?)null : (decimal)c["data_length"],
+                    nullable = c["nullable"].ToString().ToUpper() == "YES" ? true : false,
+                });
 
             table.name = columns.Count() > 0 ? columns.First().table_name : tableName;
 
