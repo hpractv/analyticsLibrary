@@ -1,20 +1,51 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+# analyticsLibrary <!-- omit in toc -->
+analyticsLibrary is a project that's been built up over time.  In my work analyzing, cleaning, and presenting large data sets, the operations in this library have proven useful. The plan is clean-up this port from my .Net Framework version to a .Net Core friendly format.
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+There are a lot of different kinds of tools here.  I plan to add to it, re-organize the different areas of functionality, and clean up the parts that didn't port over from .Net Framework very well.  Thank you for your patience.  Please, log any issues or put in Pull Requests to contribute to the code base.
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+## Index <!-- omit in toc -->
+- [Available Operations](#available-operations)
+  - [CSV](#csv)
+  - [Computer Science Operations](#computer-science-operations)
+  - [MS Excel File](#ms-excel-file)
+  - [DataBase Server Access](#database-server-access)
+  - [Statistics](#statistics)
+- [Related Links](#related-links)
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+## Available Operations
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+### CSV
+   - Reads and writes CSV file format with customizable field delimiter
+   - Can handle variable or fixed with columns
+
+### Computer Science Operations
+   1. Searching
+      - Strongly typed value search.  In the process of releasing a binary search algorithm.
+   2. Sorting
+      - Merge
+      - Quick
+
+### MS Excel File
+   - Read/Write Excel File into a DataSet
+   - Read/Write Excel Sheet in to a DataTable
+   - Can target cells in an existing file
+
+### DataBase Server Access
+   - MS Access File
+     - Allows for programmatic access and querying of Access dbs.  I need to work through the API and see how well it works after the port.
+   - Hadoop Server
+   - Oracle Server
+   - SAS Server
+   - MS SQL Server - This part of the code base didn't port over well.  It needs some overhaul and redesign to fit the .Net Core paradigm.
+   - Sybase
+
+### Statistics
+   - Co-variance
+   - Dot Product
+   - Histogram
+   - Normalize
+   - Standard Deviation
+   - Variance
+
+## Related Links
+Nuget package: [analyticsLibrary](https://www.nuget.org/packages/analyticsLibrary/)
