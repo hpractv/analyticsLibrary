@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -18,7 +18,7 @@
   <ItemGroup>
     <PackageReference Include="EntityFramework" Version="6.4.4" />
     <PackageReference Include="EPPlus" Version="5.5.1" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.101" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.180" />
     <PackageReference Include="SimpleImpersonation" Version="3.0.0" />
     <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
