@@ -3,15 +3,21 @@
     <TargetFramework>net8.0</TargetFramework>
     <Version>2.0.0</Version>
     <Authors>hpractv</Authors>
+    <Copyright>Copyright (c) hpractv</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/hpractv/analyticsLibrary</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hpractv/analyticsLibrary</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>analyticsLibrary.Algorithms</PackageId>
-    <Description>Algorithmic helpers (search, sort, string utilities) for analyticsLibrary.</Description>
-    <PackageTags>analytics,algorithms</PackageTags>
+    <Description>Search and sort algorithms for the analyticsLibrary family. Provides generic merge sort, quick sort, and binary search helpers for common .NET types including int, double, float, decimal, and string.</Description>
+    <PackageTags>analytics;algorithms;sort;search;mergesort;quicksort</PackageTags>
+    <PackageReleaseNotes>2.0.0: Remodeled from the monolithic analyticsLibrary package. Targets net8.0.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\analyticsLibrary.Core\analyticsLibrary.Core.csproj" />
   </ItemGroup>

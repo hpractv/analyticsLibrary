@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  build-test-pack:
+    name: Build, Test, and Pack
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Compute version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            VERSION="2.0.0-beta.pr-${{ github.event.pull_request.number }}.${{ github.run_number }}"
+          else
+            VERSION="2.0.0"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Pack
+        run: dotnet pack -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+
+      - name: Inspect packages
+        run: |
+          echo "Produced packages:"
+          ls -la ./artifacts/*.nupkg
+          EXPECTED_PACKAGES=(
+            "analyticsLibrary.Core"
+            "analyticsLibrary.Algorithms"
+            "analyticsLibrary.Statistics"
+            "analyticsLibrary.Excel"
+            "analyticsLibrary.Access"
+            "analyticsLibrary.Hadoop"
+            "analyticsLibrary"
+          )
+          for pkg in "${EXPECTED_PACKAGES[@]}"; do
+            if ! ls ./artifacts/${pkg}.*.nupkg 1>/dev/null 2>&1; then
+              echo "ERROR: Expected package not found: ${pkg}"
+              exit 1
+            fi
+          done
+          echo "All expected packages found."
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.version.outputs.VERSION }}
+          path: ./artifacts/*.nupkg
+          retention-days: 30
+
+      - name: Publish beta packages
+        if: >
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          secrets.NUGET_API_KEY != ''
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

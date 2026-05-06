@@ -4,14 +4,20 @@
     <PackageId>analyticsLibrary</PackageId>
     <Version>2.0.0</Version>
     <Authors>hpractv</Authors>
+    <Copyright>Copyright (c) hpractv</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/hpractv/analyticsLibrary</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hpractv/analyticsLibrary</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <Description>Metapackage referencing all analyticsLibrary packages.</Description>
-    <PackageTags>analytics</PackageTags>
+    <Description>Transition metapackage that references all analyticsLibrary 2.x packages: Core, Algorithms, Statistics, Excel, Access, and Hadoop. Install individual packages for leaner dependency graphs.</Description>
+    <PackageTags>analytics;csv;statistics;algorithms;excel;access;hadoop;odbc</PackageTags>
+    <PackageReleaseNotes>2.0.0: Remodeled into a focused package family. SQL Server, Oracle, SAS, and Sybase support removed. See migration guide in README. Targets net8.0.</PackageReleaseNotes>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\analyticsLibrary.Core\analyticsLibrary.Core.csproj" />
     <ProjectReference Include="..\analyticsLibrary.Algorithms\analyticsLibrary.Algorithms.csproj" />

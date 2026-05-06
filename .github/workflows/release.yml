@@ -1,0 +1,91 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Package version to release (e.g. 2.0.0)'
+        required: true
+        default: '2.0.0'
+
+jobs:
+  release:
+    name: Build, Test, Pack, and Deploy
+    runs-on: ubuntu-latest
+    environment: nuget-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Compute release version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Strip the leading 'v' from tag name (e.g. v2.0.0 -> 2.0.0)
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Pack
+        run: dotnet pack -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+
+      - name: Inspect packages
+        run: |
+          echo "Produced packages:"
+          ls -la ./artifacts/*.nupkg
+          EXPECTED_PACKAGES=(
+            "analyticsLibrary.Core"
+            "analyticsLibrary.Algorithms"
+            "analyticsLibrary.Statistics"
+            "analyticsLibrary.Excel"
+            "analyticsLibrary.Access"
+            "analyticsLibrary.Hadoop"
+            "analyticsLibrary"
+          )
+          MISSING=0
+          for pkg in "${EXPECTED_PACKAGES[@]}"; do
+            if ! ls ./artifacts/${pkg}.*.nupkg 1>/dev/null 2>&1; then
+              echo "ERROR: Expected package not found: ${pkg}"
+              MISSING=$((MISSING+1))
+            fi
+          done
+          if [ $MISSING -gt 0 ]; then
+            echo "Aborting: $MISSING expected package(s) are missing."
+            exit 1
+          fi
+          echo "All ${{ steps.version.outputs.VERSION }} packages found and ready for deployment."
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ steps.version.outputs.VERSION }}
+          path: ./artifacts/*.nupkg
+          retention-days: 90
+
+      - name: Deploy to NuGet
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
