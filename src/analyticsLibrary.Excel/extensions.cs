@@ -53,7 +53,7 @@ namespace analyticsLibrary.Excel
             var fieldName = string.Empty;
             var attributes = typeof(type).GetMember(field)[0]
                 .GetCustomAttributes(true);
-            var attribute = attributes.FirstOrDefault(f => f is sheetColumnAttrubte) as sheetColumnAttrubte;
+            var attribute = attributes.FirstOrDefault(f => f is sheetColumnAttribute) as sheetColumnAttribute;
 
             if (attribute != null)
             {
@@ -66,7 +66,7 @@ namespace analyticsLibrary.Excel
                     }
                 }
             }
-            if (string.IsNullOrWhiteSpace(fieldName)) throw new ApplicationException(string.Format("Field ({0}) does not exist in this table.", field));
+            if (string.IsNullOrWhiteSpace(fieldName)) throw new columnNotFoundException();
             if (!row.containsColumn(fieldName)) throw new columnNotFoundException();
 
             return (valueType)(row.IsNull(fieldName) ? null : row.Field<object>(fieldName));
