@@ -21,4 +21,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\analyticsLibrary.Excel\analyticsLibrary.Excel.csproj" />
+  </ItemGroup>
+
 </Project>
