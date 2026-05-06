@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>analyticsLibrary.Excel</PackageId>
     <Description>Excel file operations for analyticsLibrary.</Description>
-    <PackageTags>analytics,excel,epplus</PackageTags>
+    <PackageTags>analytics,excel</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EPPlus" Version="5.8.14" />

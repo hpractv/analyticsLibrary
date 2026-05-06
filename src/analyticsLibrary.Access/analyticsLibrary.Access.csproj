@@ -10,7 +10,7 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>analyticsLibrary.Access</PackageId>
     <Description>Access DB helpers for analyticsLibrary.</Description>
-    <PackageTags>analytics,access,oleDb</PackageTags>
+    <PackageTags>analytics,access</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="System.Data.OleDb" Version="8.0.0" />
