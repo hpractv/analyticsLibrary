@@ -1,10 +1,10 @@
-using analyticsLibrary.Algorithms;
+
 ﻿using analyticsLibrary.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace analyticsLibrary.Algorithms
+namespace analyticsLibrary.Core
 {
     public class typedIndex<k, v>
     {
@@ -17,8 +17,8 @@ namespace analyticsLibrary.Algorithms
             var valuesLength = values.Length;
             if (keysLength != valuesLength) throw new ApplicationException("Key count not equal to the values count.");
             
-            var tempIndex = keys.index()
-                .quickSort((v1, v2) => string.Compare(((indexObject<int, k>)v1).value.ToString(), ((indexObject<int, k>)v2).value.ToString()) <= 0);
+            var tempIndex = keys.index();
+            Array.Sort(tempIndex, (a, b) => string.Compare(a.value.ToString(), b.value.ToString()));
 
             _index = tempIndex.Select(ki => ki.value).ToArray();
             _values = new v[keysLength];
