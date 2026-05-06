@@ -82,7 +82,7 @@ namespace analyticsLibrary.sybase
             {
                 table_name = c["table_name"].ToString(),
                 name = c["column_name"].ToString(),
-                dataType = sqlDb.dataTypeFromString(c["type_name"].ToString()),
+                dataType = dataTypeHelper.dataTypeFromString(c["type_name"].ToString()),
                 length = c.IsNull("length") ? (int?)null : (int)c["length"],
                 nullable = c["is_nullable"].ToString().ToUpper() == "YES" ? true : false,
             });
@@ -118,7 +118,7 @@ namespace analyticsLibrary.sybase
                 {
                     table_name = c["table_name"].ToString(),
                     name = c["column_name"].ToString(),
-                    dataType = sqlDb.dataTypeFromString(c["type_name"].ToString()),
+                    dataType = dataTypeHelper.dataTypeFromString(c["type_name"].ToString()),
                     length = c.IsNull("length") ? (int?)null : (int)c["length"],
                     nullable = c["is_nullable"].ToString().ToUpper() == "YES" ? true : false,
                 });

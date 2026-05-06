@@ -110,7 +110,7 @@ where owner like '%{0}%' and
             {
                 table_name = c["table_name"].ToString(),
                 name = c["column_name"].ToString(),
-                dataType = sqlDb.dataTypeFromString(c["data_type"].ToString()),
+                dataType = dataTypeHelper.dataTypeFromString(c["data_type"].ToString()),
                 length = c.IsNull("data_length") ? (decimal?)null : (decimal)c["data_length"],
                 nullable = c["nullable"].ToString().ToUpper() == "YES" ? true : false,
             });
@@ -158,7 +158,7 @@ where owner like '%{0}%' and
                 {
                     table_name = c["table_name"].ToString(),
                     name = c["column_name"].ToString(),
-                    dataType = sqlDb.dataTypeFromString(c["data_type"].ToString()),
+                    dataType = dataTypeHelper.dataTypeFromString(c["data_type"].ToString()),
                     length = c.IsNull("data_length") ? (decimal?)null : (decimal)c["data_length"],
                     nullable = c["nullable"].ToString().ToUpper() == "YES" ? true : false,
                 });
