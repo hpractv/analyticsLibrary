@@ -34,10 +34,6 @@ There are a lot of different kinds of tools here.  I plan to add to it, re-organ
    - MS Access File
      - Allows for programmatic access and querying of Access dbs.  I need to work through the API and see how well it works after the port.
    - Hadoop Server
-   - Oracle Server
-   - SAS Server
-   - MS SQL Server - This part of the code base didn't port over well.  It needs some overhaul and redesign to fit the .Net Core paradigm.
-   - Sybase
 
 ### Statistics
    - Co-variance
