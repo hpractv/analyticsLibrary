@@ -1,5 +1,4 @@
-﻿using analyticsLibrary.dbObjects;
-using analyticsLibrary.excelLibrary;
+﻿using analyticsLibrary.excelLibrary;
 using analyticsLibrary.library;
 using System;
 using System.Collections.Generic;
@@ -97,7 +96,7 @@ namespace analyticsLibrary.hadoop
                     {
                         parentTable = tableName,
                         name = c.containsColumn("col_name") ? c.Field<string>("col_name") : c.Field<string>("name"),
-                        dataType = sqlDb.dataTypeFromString(matches.Groups["type"].Value),
+                        dataType = dataTypeHelper.dataTypeFromString(matches.Groups["type"].Value),
                         length = string.IsNullOrWhiteSpace(matches.Groups["length"].Value) ? (int?)null : int.Parse(matches.Groups["length"].Value),
                     };
                 });
