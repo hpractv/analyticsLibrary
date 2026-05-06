@@ -104,7 +104,7 @@ namespace analyticsLibrary.Excel
                 var header = skip.Last();
                 for (var i = 0; i < returnTable.Columns.Count; i++)
                     returnTable.Columns[i].ColumnName = header[i].ToString();
-                skip.forEach(row => returnTable.Rows.Remove(row));
+                foreach (var row in skip) returnTable.Rows.Remove(row);
             }
             return returnTable;
         }
