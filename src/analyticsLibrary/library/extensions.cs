@@ -83,7 +83,8 @@ namespace analyticsLibrary.library
             return value >= (fromDate) && value <= toDate;
         }
 
-        public static DateTime? fromSasDate(this string value)
+        /// <summary>Parses a day-offset string using the SAS epoch (days since 1960-01-01).</summary>
+        public static DateTime? fromSasEpochDate(this string value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return (DateTime?)null;

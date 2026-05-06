@@ -9,20 +9,15 @@
     <Authors>hpractv</Authors>
     <PackageId>analyticsLibrary</PackageId>
     <Version>1.0.3</Version>
-    <PackageTags>analytics, csv, data, excel, oracle, sas, sql server, sybase, statistics</PackageTags>
+    <PackageTags>analytics, csv, data, excel, statistics</PackageTags>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/hpractv/analyticsLibrary</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hpractv/analyticsLibrary</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EntityFramework" Version="6.4.4" />
     <PackageReference Include="EPPlus" Version="5.5.1" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="2.19.101" />
-    <PackageReference Include="SimpleImpersonation" Version="3.0.0" />
     <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.2" />
-    <PackageReference Include="OO_DBMS.ADODBCoreWrapper" Version="1.1.49" />
   </ItemGroup>
 
 </Project>
