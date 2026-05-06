@@ -8,7 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using analyticsLibrary.dbObjects;
+using analyticsLibrary.library;
 using analyticsLibrary.library;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
