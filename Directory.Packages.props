@@ -8,19 +8,16 @@
       EPPlus 6.0+ switched to a commercial license. Do not upgrade without a license review.
     -->
     <PackageVersion Include="EPPlus" Version="5.8.14" />
-
     <!--
       System.Data.OleDb and System.Data.OleDb are Windows-only at runtime.
       They are intentionally isolated to analyticsLibrary.Excel and analyticsLibrary.Access.
     -->
     <PackageVersion Include="System.Data.OleDb" Version="8.0.0" />
-
     <!--
       System.Data.Odbc is cross-platform but driver availability varies by OS.
       Isolated to analyticsLibrary.Hadoop.
     -->
     <PackageVersion Include="System.Data.Odbc" Version="8.0.0" />
-
     <!-- Test dependencies -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
