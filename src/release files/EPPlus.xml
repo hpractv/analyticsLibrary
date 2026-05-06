@@ -14426,11 +14426,6 @@
                anonymous delegate in C#. The DataSet XML is never saved to a disk file.
             
              <code lang="C#">
-             var c1= new System.Data.SqlClient.SqlConnection(connstring1);
-             var da = new System.Data.SqlClient.SqlDataAdapter()
-                 {
-                     SelectCommand=  new System.Data.SqlClient.SqlCommand(strSelect, c1)
-                 };
             
              DataSet ds1 = new DataSet();
              da.Fill(ds1, "Invoices");
