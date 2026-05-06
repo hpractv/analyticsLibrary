@@ -4,11 +4,11 @@ namespace analyticsLibrary.Excel
 {
     public class sheetColumnAttribute : Attribute
     {
-        private string[] _sheetColumNames { get; set; }
-        public string[] sheetColumnNames { get { return _sheetColumNames; } }
-        public sheetColumnAttribute(params string[] sheetColumNames)
+        private string[] _sheetColumnNames { get; set; }
+        public string[] sheetColumnNames { get { return _sheetColumnNames; } }
+        public sheetColumnAttribute(params string[] sheetColumnNames)
         {
-            this._sheetColumNames = sheetColumNames;
+            this._sheetColumnNames = sheetColumnNames;
         }
     }
 }
