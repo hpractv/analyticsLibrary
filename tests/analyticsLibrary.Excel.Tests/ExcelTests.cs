@@ -1,30 +1,34 @@
 using System;
 using System.Data;
 using System.IO;
-using System.Linq;
-using analyticsLibrary.Excel;
-using OfficeOpenXml;
 using Xunit;
+using OfficeOpenXml;
+using analyticsLibrary.Excel;
 
 namespace analyticsLibrary.Excel.Tests
 {
     public class ExcelTests
     {
         [Fact]
-        public void ColumnEnumValuesAndCount()
+        public void ColumnLettersEnum_Values_AreCorrect()
         {
             Assert.Equal(1, (int)columnLettersEnum.A);
             Assert.Equal(26, (int)columnLettersEnum.Z);
             Assert.Equal(27, (int)columnLettersEnum.AA);
             Assert.Equal(43, (int)columnLettersEnum.AQ);
             Assert.Equal(52, (int)columnLettersEnum.AZ);
-            var values = Enum.GetValues(typeof(columnLettersEnum)).Cast<int>().ToArray();
-            Assert.Equal(52, values.Length);
-            Assert.Equal(52, values.Distinct().Count());
+            Assert.Equal(52, Enum.GetValues(typeof(columnLettersEnum)).Length);
         }
 
         [Fact]
-        public void ColumnNumberExtensionReturnsInt()
+        public void ColumnLettersEnum_Count_ReturnsCorrectNumber()
+        {
+            var values = Enum.GetValues(typeof(columnLettersEnum));
+            Assert.Equal(52, values.Length);
+        }
+
+        [Fact]
+        public void ColumnNumberExtension_ReturnsInt()
         {
             Assert.Equal(1, columnLettersEnum.A.columnNumber());
             Assert.Equal(26, columnLettersEnum.Z.columnNumber());
@@ -32,72 +36,74 @@ namespace analyticsLibrary.Excel.Tests
         }
 
         [Fact]
-        public void SheetColumnAttributeStoresNames()
+        public void SheetColumnAttribute_StoresNames()
         {
-            var attr = new sheetColumnAttribute("ColA", "ColB");
+            var attr = new sheetColumnAttribute("ColA","ColB");
             Assert.NotNull(attr.sheetColumnNames);
-            Assert.Equal(2, attr.sheetColumnNames.Length);
-            Assert.Contains("ColA", attr.sheetColumnNames);
-            Assert.Contains("ColB", attr.sheetColumnNames);
+            Assert.Equal(new[] { "ColA", "ColB" }, attr.sheetColumnNames);
         }
 
-        public class ModelWithAttr
+        private class RowModel
         {
             [sheetColumnAttribute("ColA")]
-            public string Value { get; set; }
+            public string MyProp { get; set; }
         }
 
         [Fact]
-        public void RowValueReturnsValueAndThrowsOnMissing()
+        public void RowValue_Returns_CorrectValue_And_Throws_When_NotFound()
         {
-            var table = new DataTable();
-            table.Columns.Add("ColA", typeof(string));
-            var row = table.NewRow();
-            row["ColA"] = "Hello";
-            table.Rows.Add(row);
+            var dt = new DataTable();
+            dt.Columns.Add("ColA", typeof(string));
+            var r = dt.NewRow();
+            r["ColA"] = "hello";
+            dt.Rows.Add(r);
 
-            var result = table.Rows[0].rowValue<ModelWithAttr, string>("Value");
-            Assert.Equal("Hello", result);
+            var value = dt.Rows[0].rowValue<RowModel, string>(nameof(RowModel.MyProp));
+            Assert.Equal("hello", value);
 
-            var emptyTable = new DataTable();
-            emptyTable.Columns.Add("Other", typeof(string));
-            var emptyRow = emptyTable.NewRow();
-            emptyTable.Rows.Add(emptyRow);
+            var dt2 = new DataTable();
+            dt2.Columns.Add("OtherCol", typeof(string));
+            var r2 = dt2.NewRow();
+            r2["OtherCol"] = "x";
+            dt2.Rows.Add(r2);
 
-            Assert.Throws<analyticsLibrary.Excel.extensions.columnNotFoundException>(() => emptyTable.Rows[0].rowValue<ModelWithAttr, string>("Value"));
+            Assert.Throws<extensions.columnNotFoundException>(() => dt2.Rows[0].rowValue<RowModel, string>(nameof(RowModel.MyProp)));
         }
 
         [Fact]
-        public void EPPlus_InMemory_RoundTrip()
+        public void EPPlus_Workbook_RoundTrip_InMemory()
         {
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             using (var package = new ExcelPackage())
             {
                 var ws = package.Workbook.Worksheets.Add("Sheet1");
-                ws.Cells[1, 1].Value = "TestValue";
+                ws.Cells[1, 1].Value = "test-value";
+
+                // save to stream and reload
                 using (var ms = new MemoryStream())
                 {
                     package.SaveAs(ms);
                     ms.Position = 0;
-                    using (var p2 = new ExcelPackage(ms))
+                    using (var read = new ExcelPackage(ms))
                     {
-                        var value = p2.Workbook.Worksheets[0].Cells[1,1].Text;
-                        Assert.Equal("TestValue", value);
+                        var readWs = read.Workbook.Worksheets[0];
+                        Assert.Equal("test-value", readWs.Cells[1, 1].Text);
                     }
                 }
             }
         }
 
         [Fact]
-        public void GetExcelSheetName_ReplacesSpacesWithUnderscores()
+        public void GetExcelSheetName_ReplacesSpaces_WithUnderscore()
         {
-            var dt = new DataTable();
-            dt.TableName = "My Sheet";
-            Assert.Equal("My_Sheet", excelLibrary.getExcelSheetName(dt));
+            var dt = new DataTable("My Sheet");
+            var name = excelLibrary.getExcelSheetName(dt);
+            Assert.Equal("My_Sheet", name);
 
-            var dt2 = new DataTable();
-            dt2.ExtendedProperties["TableName"] = "Another Sheet";
-            Assert.Equal("Another_Sheet", excelLibrary.getExcelSheetName(dt2));
+            var dt2 = new DataTable("IgnoredName");
+            dt2.ExtendedProperties.Add("TableName", "Sheet With Spaces");
+            var name2 = excelLibrary.getExcelSheetName(dt2);
+            Assert.Equal("Sheet_With_Spaces", name2);
         }
     }
 }
