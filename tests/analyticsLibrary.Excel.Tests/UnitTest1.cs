@@ -1,10 +1,5 @@
-namespace analyticsLibrary.Excel.Tests;
-
-public class UnitTest1
+namespace analyticsLibrary.Excel.Tests
 {
-    [Fact]
-    public void Test1()
-    {
-
-    }
+    // Tests consolidated in ExcelTests.cs
+    public class UnitTest1 { }
 }
