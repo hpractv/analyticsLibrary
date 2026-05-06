@@ -35,6 +35,7 @@ Generated\ Files/
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
+.test-output.txt
 
 # NUNIT
 *.VisualState.xml
