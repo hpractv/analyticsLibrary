@@ -1,5 +1,5 @@
-﻿using analyticsLibrary.Algorithms;
-using analyticsLibrary.Core;
+using analyticsLibrary.Algorithms;
+﻿using analyticsLibrary.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
