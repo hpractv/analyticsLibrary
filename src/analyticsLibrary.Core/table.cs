@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace analyticsLibrary.Core
+{
+    [Serializable]
+    public class table
+    {
+        public string schema { get; set; }
+        public string name { get; set; }
+        public IEnumerable<column> columns { get; set; }
+    }
+
+}

@@ -1,24 +1,23 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
-    <RootNamespace>analyticsLibrary</RootNamespace>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <AssemblyName>analyticsLibrary</AssemblyName>
-    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
-    <Authors>hpractv</Authors>
+    <TargetFramework>net8.0</TargetFramework>
     <PackageId>analyticsLibrary</PackageId>
-    <Version>1.0.3</Version>
-    <PackageTags>analytics, csv, data, excel, statistics</PackageTags>
+    <Version>2.0.0</Version>
+    <Authors>hpractv</Authors>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/hpractv/analyticsLibrary</PackageProjectUrl>
     <RepositoryUrl>https://github.com/hpractv/analyticsLibrary</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Description>Metapackage referencing all analyticsLibrary packages.</Description>
+    <PackageTags>analytics</PackageTags>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="EPPlus" Version="5.5.1" />
-    <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
-    <PackageReference Include="System.Data.Odbc" Version="4.8.3" />
+    <ProjectReference Include="..\analyticsLibrary.Core\analyticsLibrary.Core.csproj" />
+    <ProjectReference Include="..\analyticsLibrary.Algorithms\analyticsLibrary.Algorithms.csproj" />
+    <ProjectReference Include="..\analyticsLibrary.Statistics\analyticsLibrary.Statistics.csproj" />
+    <ProjectReference Include="..\analyticsLibrary.Excel\analyticsLibrary.Excel.csproj" />
+    <ProjectReference Include="..\analyticsLibrary.Access\analyticsLibrary.Access.csproj" />
+    <ProjectReference Include="..\analyticsLibrary.Hadoop\analyticsLibrary.Hadoop.csproj" />
   </ItemGroup>
-
 </Project>

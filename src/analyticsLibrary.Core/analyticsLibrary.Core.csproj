@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Version>2.0.0</Version>
+    <Authors>hpractv</Authors>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/hpractv/analyticsLibrary</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hpractv/analyticsLibrary</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>analyticsLibrary.Core</PackageId>
+    <Description>Core helpers and data objects for analyticsLibrary.</Description>
+    <PackageTags>analytics,csv,core,statistics</PackageTags>
+  </PropertyGroup>
+</Project>
