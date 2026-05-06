@@ -2,7 +2,7 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace analyticsLibrary.Algorithms
+namespace analyticsLibrary.Core
 {
     public static class analytics
     {
