@@ -43,11 +43,9 @@ namespace analyticsLibrary.Excel
             public const string DECIMAL = "decimal";
         }
 
-        public static ExcelPackage getExcelConnection(string fileName) {
-            var package = new ExcelPackage();
-            package.Load(File.OpenRead(fileName));
-            return package;
-        }
+        // BREAKING: getExcelConnection removed. Returning OfficeOpenXml.ExcelPackage from this library is deprecated/removed in Epic 002.
+        // Migration: callers should use NPOI (XSSFWorkbook/HSSFWorkbook) or the new getWorkbookSheetDatasets APIs.
+        // NOTE: The original public API exposed ExcelPackage; removing it is intentional for this epic (task 16 tracks migration).
 
         public static string getExcelSheetName(DataTable dataTable)
         {
@@ -64,23 +62,44 @@ namespace analyticsLibrary.Excel
         }
         public static string[] getExcelSheetNames(string fileName, bool compactNames)
         {
-            string[] excelSheets = null;
+            if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            var names = new List<string>();
 
-            using (var package = getExcelConnection(fileName))
+            if (ext == ".xlsx")
             {
-                excelSheets = package.Workbook.Worksheets.Cast<ExcelWorksheet>()
-                    .Select(s => s.Name).ToArray();
-
-                package.Dispose();
+                using (var fs = File.OpenRead(fileName))
+                {
+                    var workbook = new XSSFWorkbook(fs);
+                    for (int i = 0; i < workbook.NumberOfSheets; i++) names.Add(workbook.GetSheetAt(i).SheetName);
+                }
+            }
+            else if (ext == ".xls")
+            {
+                using (var fs = File.OpenRead(fileName))
+                {
+                    var workbook = new HSSFWorkbook(fs);
+                    for (int i = 0; i < workbook.NumberOfSheets; i++) names.Add(workbook.GetSheetAt(i).SheetName);
+                }
+            }
+            else if (ext == ".xlsb")
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using (var stream = File.OpenRead(fileName))
+                using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                {
+                    var ds = reader.AsDataSet();
+                    foreach (DataTable t in ds.Tables) names.Add(t.TableName);
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"Extension '{ext}' is not supported. Use .xlsx, .xls, or .xlsb.");
             }
 
             return compactNames ?
-                excelSheets
-                    .Select(s => 
-                        s.Replace("'", string.Empty)
-                        .Replace("$", string.Empty))
-                    .ToArray() :
-                excelSheets;
+                names.Select(s => s.Replace("'", string.Empty).Replace("$", string.Empty)).ToArray() :
+                names.ToArray();
         }
         
         public static DataTable getSheetData(string fileName, int sheetNumber, int? skipRows = null)
@@ -114,45 +133,99 @@ namespace analyticsLibrary.Excel
         }
         public static DataSet getSheetData(string fileName)
         {
+            if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
             var returnDS = new DataSet();
-            var package = getExcelConnection(fileName);
 
-            foreach (var sheet in package.Workbook.Worksheets)
+            if (ext == ".xlsx")
             {
-                var table = new DataTable(sheet.Name);
-                if (sheet.Dimension != null)
+                using (var fs = File.OpenRead(fileName))
                 {
-                    var endColumn = sheet.Dimension.End.Column;
-                    var endRow = sheet.Dimension.End.Row;
-                    var header = sheet.Cells[1, 1, 1, endColumn];
-                    for (var i = 1; i <= endColumn; i++)
+                    var workbook = new XSSFWorkbook(fs);
+                    for (int si = 0; si < workbook.NumberOfSheets; si++)
                     {
-                        var cell = sheet.Cells[1, i, 1, i];
-                        var columnName = !string.IsNullOrWhiteSpace(cell.Text) ? cell.Text : string.Format("Column {0}", i);
-                        var usedCount = table.Columns.Cast<DataColumn>().Count(c => c.ColumnName == columnName);
-                        while (usedCount > 0)
-                        {
-                            columnName = string.Format("{0} {1}", columnName, usedCount);
-                            usedCount = table.Columns.Cast<DataColumn>().Count(c => c.ColumnName == columnName);
-                        }
-                        table.Columns.Add(columnName);
-                    }
+                        var sheet = workbook.GetSheetAt(si);
+                        var dsTable = new DataTable(sheet.SheetName);
 
-                    for (var i = 2; i <= endRow; i++)
-                    {
-                        var row = table.NewRow();
-                        var values = sheet.Cells[i, 1, i, endColumn ];
-                        foreach (var value in values)
+                        if (sheet.LastRowNum < sheet.FirstRowNum)
                         {
-                            row[value.Start.Column - 1] = value.Value;
+                            returnDS.Tables.Add(dsTable);
+                            continue;
                         }
-                        table.Rows.Add(row);
+
+                        int firstRow = sheet.FirstRowNum;
+                        int lastRow = sheet.LastRowNum;
+                        IRow headerRow = sheet.GetRow(firstRow);
+                        int firstCol = 0;
+                        int lastCol = 0;
+                        if (headerRow != null)
+                        {
+                            firstCol = headerRow.FirstCellNum >= 0 ? headerRow.FirstCellNum : 0;
+                            lastCol = headerRow.LastCellNum > 0 ? headerRow.LastCellNum - 1 : firstCol;
+                        }
+                        else
+                        {
+                            for (int r = firstRow; r <= lastRow; r++)
+                            {
+                                var row = sheet.GetRow(r);
+                                if (row != null)
+                                {
+                                    firstCol = row.FirstCellNum >= 0 ? row.FirstCellNum : 0;
+                                    lastCol = row.LastCellNum > 0 ? row.LastCellNum - 1 : firstCol;
+                                    break;
+                                }
+                            }
+                        }
+
+                        var table = BuildDataTableFromNpoiSheet(sheet, firstRow, lastRow, firstCol, lastCol, sheet.SheetName);
+                        returnDS.Tables.Add(table);
                     }
                 }
-                returnDS.Tables.Add(table);
             }
-            
-            package.Dispose();
+            else if (ext == ".xls")
+            {
+                using (var fs = File.OpenRead(fileName))
+                {
+                    var workbook = new HSSFWorkbook(fs);
+                    for (int si = 0; si < workbook.NumberOfSheets; si++)
+                    {
+                        var sheet = workbook.GetSheetAt(si);
+                        if (sheet.LastRowNum < sheet.FirstRowNum)
+                        {
+                            returnDS.Tables.Add(new DataTable(sheet.SheetName));
+                            continue;
+                        }
+                        int firstRow = sheet.FirstRowNum;
+                        int lastRow = sheet.LastRowNum;
+                        IRow headerRow = sheet.GetRow(firstRow);
+                        int firstCol = headerRow != null && headerRow.FirstCellNum >= 0 ? headerRow.FirstCellNum : 0;
+                        int lastCol = headerRow != null && headerRow.LastCellNum > 0 ? headerRow.LastCellNum - 1 : firstCol;
+                        var table = BuildDataTableFromNpoiSheet(sheet, firstRow, lastRow, firstCol, lastCol, sheet.SheetName);
+                        returnDS.Tables.Add(table);
+                    }
+                }
+            }
+            else if (ext == ".xlsb")
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using (var stream = File.OpenRead(fileName))
+                using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                {
+                    var conf = new ExcelDataSetConfiguration { ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true } };
+                    var dsFromReader = reader.AsDataSet(conf);
+                    foreach (DataTable table in dsFromReader.Tables)
+                    {
+                        var dt = table.Copy();
+                        if (string.IsNullOrEmpty(dt.TableName)) dt.TableName = "Sheet";
+                        returnDS.Tables.Add(dt);
+                    }
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"Extension '{ext}' is not supported. Use .xlsx, .xls, or .xlsb.");
+            }
+
             return returnDS;
         }
 

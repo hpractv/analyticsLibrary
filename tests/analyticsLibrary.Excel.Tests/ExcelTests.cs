@@ -4,6 +4,7 @@ using System.IO;
 using analyticsLibrary.Excel;
 using Xunit;
 using NPOI.XSSF.UserModel;
+using NPOI.HSSF.UserModel;
 using NPOI.SS.UserModel;
 using NPOI.SS.Util;
 
@@ -175,6 +176,88 @@ namespace analyticsLibrary.Excel.Tests
             {
                 try { File.Delete(temp); } catch { }
             }
+        }
+
+        [Fact]
+        public void GetSheetData_From_Xlsx_File_Works()
+        {
+            var workbook = new XSSFWorkbook();
+            var sheet = workbook.CreateSheet("Sheet1");
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue("ColA");
+            var row = sheet.CreateRow(1);
+            row.CreateCell(0).SetCellValue("hello");
+
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp))
+                {
+                    workbook.Write(fs);
+                }
+
+                var ds = excelLibrary.getSheetData(temp);
+                Assert.NotNull(ds);
+                Assert.Equal(1, ds.Tables.Count);
+                var dt = ds.Tables[0];
+                Assert.Equal("Sheet1", dt.TableName);
+                Assert.Equal("ColA", dt.Columns[0].ColumnName);
+                Assert.Equal("hello", dt.Rows[0][0].ToString());
+            }
+            finally
+            {
+                try { File.Delete(temp); } catch { }
+            }
+        }
+
+        [Fact]
+        public void GetSheetData_From_Xls_File_Works()
+        {
+            var workbook = new NPOI.HSSF.UserModel.HSSFWorkbook();
+            var sheet = workbook.CreateSheet("Sheet1");
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue("ColA");
+            var row = sheet.CreateRow(1);
+            row.CreateCell(0).SetCellValue("hello");
+
+            var temp = Path.GetTempFileName() + ".xls";
+            try
+            {
+                using (var fs = File.Create(temp))
+                {
+                    workbook.Write(fs);
+                }
+
+                var ds = excelLibrary.getSheetData(temp);
+                Assert.NotNull(ds);
+                Assert.Equal(1, ds.Tables.Count);
+                var dt = ds.Tables[0];
+                Assert.Equal("Sheet1", dt.TableName);
+                Assert.Equal("ColA", dt.Columns[0].ColumnName);
+                Assert.Equal("hello", dt.Rows[0][0].ToString());
+            }
+            finally
+            {
+                try { File.Delete(temp); } catch { }
+            }
+        }
+
+        [Fact]
+        public void GetExcelSheetNames_Returns_Sheet_Names_Xlsx()
+        {
+            var workbook = new XSSFWorkbook();
+            workbook.CreateSheet("A");
+            workbook.CreateSheet("B");
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp)) { workbook.Write(fs); }
+                var names = excelLibrary.getExcelSheetNames(temp);
+                Assert.Equal(2, names.Length);
+                Assert.Equal("A", names[0]);
+                Assert.Equal("B", names[1]);
+            }
+            finally { try { File.Delete(temp); } catch { } }
         }
     }
 }
