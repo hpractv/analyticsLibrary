@@ -21,6 +21,9 @@
   <ItemGroup>
     <PackageReference Include="EPPlus" />
     <PackageReference Include="System.Data.OleDb" />
+    <PackageReference Include="ExcelDataReader" />
+    <PackageReference Include="ExcelDataReader.DataSet" />
+    <PackageReference Include="NPOI" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\analyticsLibrary.Core\analyticsLibrary.Core.csproj" />

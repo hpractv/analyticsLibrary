@@ -18,6 +18,10 @@
       Isolated to analyticsLibrary.Hadoop.
     -->
     <PackageVersion Include="System.Data.Odbc" Version="8.0.0" />
+    <!-- FOSS Excel dependencies added for Epic 002 -->
+    <PackageVersion Include="ExcelDataReader" Version="3.7.0" />
+    <PackageVersion Include="ExcelDataReader.DataSet" Version="3.7.0" />
+    <PackageVersion Include="NPOI" Version="2.7.4" />
     <!-- Test dependencies -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />
