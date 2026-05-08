@@ -8,3 +8,10 @@
 
 - Note: A small cosmetic edit removed the literal "ExcelWorksheet" token from a write-API comment in excelLibrary.cs to ensure no accidental symbol references remain; change committed.
 
+- Write APIs (writeSheetDataXlsx, writeWorkbook, copySheet, deleteTable, removeWorksheet) implemented using NPOI (XSSFWorkbook/HSSFWorkbook). Writing .xlsb is not supported; write APIs throw NotSupportedException for .xlsb.
+- Validation: dotnet build -c Release succeeded; dotnet test -c Release --no-build ran 81 tests, all passed.
+- Commands used: `dotnet build -c Release`, `dotnet test -c Release --no-build`.
+
+- Note: deleteTable uses reflection on XSSFSheet private 'tables' field to remove table entries (NPOI internal); this is fragile and tied to the NPOI version in use.
+- Note: legacy EPPlus XML documentation artifacts remain under src/release files/EPPlus.xml; they reference OfficeOpenXml types but are not part of the Excel project build.
+
