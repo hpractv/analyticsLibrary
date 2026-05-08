@@ -11,6 +11,10 @@ using System.Text.RegularExpressions;
 using analyticsLibrary.Core;
 using OfficeOpenXml;
 using OfficeOpenXml.Style;
+using NPOI.SS.UserModel;
+using NPOI.XSSF.UserModel;
+using NPOI.HSSF.UserModel;
+using ExcelDataReader;
 
 namespace analyticsLibrary.Excel
 {
@@ -150,6 +154,321 @@ namespace analyticsLibrary.Excel
             
             package.Dispose();
             return returnDS;
+        }
+
+        /// <summary>
+        /// Reads a workbook and returns an ordered array of DataSet instances - one per worksheet.
+        /// For .xlsx sheets each Excel structured table (ListObject) becomes a DataTable; when no tables exist a single DataTable is produced from the used range.
+        /// Supported extensions: .xlsx, .xls, .xlsb
+        /// DataSet.DataSetName is set to the worksheet name.
+        /// </summary>
+        public static DataSet[] getWorkbookSheetDatasets(string fileName)
+        {
+            if (string.IsNullOrEmpty(fileName)) throw new ArgumentNullException(nameof(fileName));
+            var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+            var datasets = new List<DataSet>();
+
+            if (ext == ".xlsx")
+            {
+                using (var fs = File.OpenRead(fileName))
+                {
+                    var workbook = new XSSFWorkbook(fs);
+                    for (int si = 0; si < workbook.NumberOfSheets; si++)
+                    {
+                        var sheet = workbook.GetSheetAt(si);
+                        var ds = new DataSet();
+                        ds.DataSetName = sheet.SheetName;
+
+                        var xssfSheet = sheet as XSSFSheet;
+                        var tables = xssfSheet?.GetTables();
+
+                        if (tables != null && tables.Count > 0)
+                        {
+                            var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                            foreach (var table in tables)
+                            {
+                                dynamic t = table;
+                                int startRow = (int)t.StartRowIndex;
+                                int endRow = (int)t.EndRowIndex;
+                                int startCol = (int)t.StartColIndex;
+                                int endCol = (int)t.EndColIndex;
+                                string tname = t.Name != null ? t.Name.ToString() : "Table";
+                                if (nameCounts.ContainsKey(tname))
+                                {
+                                    nameCounts[tname]++;
+                                    tname = $"{tname}_{nameCounts[tname]}";
+                                }
+                                else
+                                {
+                                    nameCounts[tname] = 0;
+                                }
+
+                                var dt = BuildDataTableFromNpoiSheet(sheet, startRow, endRow, startCol, endCol, tname);
+                                ds.Tables.Add(dt);
+                            }
+                        }
+                        else
+                        {
+                            // whole-sheet fallback
+                            if (sheet.LastRowNum < sheet.FirstRowNum)
+                            {
+                                ds.Tables.Add(new DataTable(sheet.SheetName));
+                            }
+                            else
+                            {
+                                int firstRow = sheet.FirstRowNum;
+                                int lastRow = sheet.LastRowNum;
+                                IRow headerRow = sheet.GetRow(firstRow);
+                                int firstCol = 0;
+                                int lastCol = 0;
+                                if (headerRow != null)
+                                {
+                                    firstCol = headerRow.FirstCellNum >= 0 ? headerRow.FirstCellNum : 0;
+                                    lastCol = headerRow.LastCellNum > 0 ? headerRow.LastCellNum - 1 : firstCol;
+                                }
+                                else
+                                {
+                                    // find first non-empty row
+                                    for (int r = firstRow; r <= lastRow; r++)
+                                    {
+                                        var row = sheet.GetRow(r);
+                                        if (row != null)
+                                        {
+                                            firstCol = row.FirstCellNum >= 0 ? row.FirstCellNum : 0;
+                                            lastCol = row.LastCellNum > 0 ? row.LastCellNum - 1 : firstCol;
+                                            break;
+                                        }
+                                    }
+                                }
+                                var dt = BuildDataTableFromNpoiSheet(sheet, firstRow, lastRow, firstCol, lastCol, sheet.SheetName);
+                                ds.Tables.Add(dt);
+                            }
+                        }
+
+                        datasets.Add(ds);
+                    }
+                }
+            }
+            else if (ext == ".xls")
+            {
+                using (var fs = File.OpenRead(fileName))
+                {
+                    var workbook = new HSSFWorkbook(fs);
+                    for (int si = 0; si < workbook.NumberOfSheets; si++)
+                    {
+                        var sheet = workbook.GetSheetAt(si);
+                        var ds = new DataSet { DataSetName = sheet.SheetName };
+
+                        if (sheet.LastRowNum < sheet.FirstRowNum)
+                        {
+                            ds.Tables.Add(new DataTable(sheet.SheetName));
+                        }
+                        else
+                        {
+                            int firstRow = sheet.FirstRowNum;
+                            int lastRow = sheet.LastRowNum;
+                            IRow headerRow = sheet.GetRow(firstRow);
+                            int firstCol = headerRow != null && headerRow.FirstCellNum >= 0 ? headerRow.FirstCellNum : 0;
+                            int lastCol = headerRow != null && headerRow.LastCellNum > 0 ? headerRow.LastCellNum - 1 : firstCol;
+                            var dt = BuildDataTableFromNpoiSheet(sheet, firstRow, lastRow, firstCol, lastCol, sheet.SheetName);
+                            ds.Tables.Add(dt);
+                        }
+
+                        datasets.Add(ds);
+                    }
+                }
+            }
+            else if (ext == ".xlsb")
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using (var stream = File.OpenRead(fileName))
+                {
+                    using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                    {
+                        var conf = new ExcelDataSetConfiguration
+                        {
+                            ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true }
+                        };
+                        var dsFromReader = reader.AsDataSet(conf);
+                        foreach (DataTable table in dsFromReader.Tables)
+                        {
+                            var ds = new DataSet { DataSetName = table.TableName };
+                            ds.Tables.Add(table.Copy());
+                            datasets.Add(ds);
+                        }
+                    }
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"Extension '{ext}' is not supported. Use .xlsx, .xls, or .xlsb.");
+            }
+
+            return datasets.ToArray();
+        }
+
+        /// <summary>
+        /// Stream overload: provide a stream and a format hint (".xlsx", ".xls", ".xlsb").
+        /// </summary>
+        public static DataSet[] getWorkbookSheetDatasets(Stream stream, string formatHintOrExtension)
+        {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (string.IsNullOrEmpty(formatHintOrExtension)) throw new ArgumentNullException(nameof(formatHintOrExtension));
+            var ext = formatHintOrExtension.Trim().ToLowerInvariant();
+            if (!ext.StartsWith('.')) ext = "." + ext;
+
+            var datasets = new List<DataSet>();
+
+            if (ext == ".xlsx")
+            {
+                var workbook = new XSSFWorkbook(stream);
+                for (int si = 0; si < workbook.NumberOfSheets; si++)
+                {
+                    var sheet = workbook.GetSheetAt(si);
+                    var ds = new DataSet { DataSetName = sheet.SheetName };
+                    var xssfSheet = sheet as XSSFSheet;
+                    var tables = xssfSheet?.GetTables();
+
+                    if (tables != null && tables.Count > 0)
+                    {
+                        var nameCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+                        foreach (var table in tables)
+                        {
+                            dynamic t = table;
+                            int startRow = (int)t.StartRowIndex;
+                            int endRow = (int)t.EndRowIndex;
+                            int startCol = (int)t.StartColIndex;
+                            int endCol = (int)t.EndColIndex;
+                            string tname = t.Name != null ? t.Name.ToString() : "Table";
+                            if (nameCounts.ContainsKey(tname))
+                            {
+                                nameCounts[tname]++;
+                                tname = $"{tname}_{nameCounts[tname]}";
+                            }
+                            else nameCounts[tname] = 0;
+
+                            var dt = BuildDataTableFromNpoiSheet(sheet, startRow, endRow, startCol, endCol, tname);
+                            ds.Tables.Add(dt);
+                        }
+                    }
+                    else
+                    {
+                        if (sheet.LastRowNum < sheet.FirstRowNum)
+                        {
+                            ds.Tables.Add(new DataTable(sheet.SheetName));
+                        }
+                        else
+                        {
+                            int firstRow = sheet.FirstRowNum;
+                            int lastRow = sheet.LastRowNum;
+                            IRow headerRow = sheet.GetRow(firstRow);
+                            int firstCol = headerRow != null ? (headerRow.FirstCellNum >= 0 ? headerRow.FirstCellNum : 0) : 0;
+                            int lastCol = headerRow != null ? (headerRow.LastCellNum > 0 ? headerRow.LastCellNum - 1 : firstCol) : firstCol;
+                            var dt = BuildDataTableFromNpoiSheet(sheet, firstRow, lastRow, firstCol, lastCol, sheet.SheetName);
+                            ds.Tables.Add(dt);
+                        }
+                    }
+                    datasets.Add(ds);
+                }
+            }
+            else if (ext == ".xls")
+            {
+                var workbook = new HSSFWorkbook(stream);
+                for (int si = 0; si < workbook.NumberOfSheets; si++)
+                {
+                    var sheet = workbook.GetSheetAt(si);
+                    var ds = new DataSet { DataSetName = sheet.SheetName };
+                    if (sheet.LastRowNum < sheet.FirstRowNum)
+                    {
+                        ds.Tables.Add(new DataTable(sheet.SheetName));
+                    }
+                    else
+                    {
+                        int firstRow = sheet.FirstRowNum;
+                        int lastRow = sheet.LastRowNum;
+                        IRow headerRow = sheet.GetRow(firstRow);
+                        int firstCol = headerRow != null && headerRow.FirstCellNum >= 0 ? headerRow.FirstCellNum : 0;
+                        int lastCol = headerRow != null && headerRow.LastCellNum > 0 ? headerRow.LastCellNum - 1 : firstCol;
+                        var dt = BuildDataTableFromNpoiSheet(sheet, firstRow, lastRow, firstCol, lastCol, sheet.SheetName);
+                        ds.Tables.Add(dt);
+                    }
+                    datasets.Add(ds);
+                }
+            }
+            else if (ext == ".xlsb")
+            {
+                System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+                using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                {
+                    var conf = new ExcelDataSetConfiguration { ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true } };
+                    var dsFromReader = reader.AsDataSet(conf);
+                    foreach (DataTable table in dsFromReader.Tables)
+                    {
+                        var ds = new DataSet { DataSetName = table.TableName };
+                        ds.Tables.Add(table.Copy());
+                        datasets.Add(ds);
+                    }
+                }
+            }
+            else
+            {
+                throw new NotSupportedException($"Extension '{ext}' is not supported. Use .xlsx, .xls, or .xlsb.");
+            }
+
+            return datasets.ToArray();
+        }
+
+        private static DataTable BuildDataTableFromNpoiSheet(ISheet sheet, int firstRow, int lastRow, int firstCol, int lastCol, string tableName)
+        {
+            var table = new DataTable(tableName);
+
+            // header
+            IRow headerRow = sheet.GetRow(firstRow);
+            for (int c = firstCol; c <= lastCol; c++)
+            {
+                string colName = null;
+                if (headerRow != null)
+                {
+                    var cell = headerRow.GetCell(c);
+                    if (cell != null)
+                        colName = cell.ToString();
+                }
+                if (string.IsNullOrWhiteSpace(colName))
+                    colName = $"Column {c - firstCol + 1}";
+
+                string uniqueName = colName;
+                int suffix = 1;
+                while (table.Columns.Cast<DataColumn>().Any(dc => dc.ColumnName == uniqueName))
+                {
+                    uniqueName = $"{colName} {suffix}";
+                    suffix++;
+                }
+                table.Columns.Add(uniqueName);
+            }
+
+            // data rows
+            for (int r = firstRow + 1; r <= lastRow; r++)
+            {
+                var newRow = table.NewRow();
+                var sheetRow = sheet.GetRow(r);
+                for (int c = firstCol; c <= lastCol; c++)
+                {
+                    if (sheetRow != null)
+                    {
+                        var cell = sheetRow.GetCell(c);
+                        newRow[c - firstCol] = cell != null ? cell.ToString() : string.Empty;
+                    }
+                    else
+                    {
+                        newRow[c - firstCol] = string.Empty;
+                    }
+                }
+                table.Rows.Add(newRow);
+            }
+
+            table.TableName = tableName;
+            return table;
         }
 
         public static ExcelWorksheet getSheet(string fileName, string sheetName)
