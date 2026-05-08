@@ -29,7 +29,6 @@ namespace analyticsLibrary.Excel.Tests
             ctTable.@ref = "A1:B2";
             table.DisplayName = "MyTable";
             table.Name = "MyTable";
-            table.SetCellReferences(new NPOI.SS.Util.AreaReference("A1:B2", NPOI.SS.SpreadsheetVersion.EXCEL2007));
 
             var sheet2 = wb.CreateSheet("NoTable");
             var h2 = sheet2.CreateRow(0);
