@@ -1,16 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Data.OleDb;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using analyticsLibrary.Core;
-using OfficeOpenXml;
-using OfficeOpenXml.Style;
 using NPOI.SS.UserModel;
 using NPOI.XSSF.UserModel;
 using NPOI.HSSF.UserModel;
@@ -20,32 +14,7 @@ namespace analyticsLibrary.Excel
 {
     public static class excelLibrary
     {
-        private static string connectionString(string fileName)
-        {
-            return string.Format(@"Provider=Microsoft.ACE.OLEDB.12.0;Excel 12.0 Xml;HDR=YES;Data Source={0};", fileName);
-        }
         private const string TABLE_NAME_PROPERTY = "TableName";
-
-        private struct ExcelDataTypes
-        {
-            public const string NUMBER = "NUMBER";
-            public const string DATETIME = "DATETIME";
-            public const string STRING = "STRING";
-        }
-        private struct ClassDataTypes
-        {
-            public const string SHORT = "int16";
-            public const string INT = "int32";
-            public const string LONG = "int64";
-            public const string STRING = "string";
-            public const string DATE = "datetime";
-            public const string BOOL = "boolean";
-            public const string DECIMAL = "decimal";
-        }
-
-        // BREAKING: getExcelConnection removed. Returning OfficeOpenXml.ExcelPackage from this library is deprecated/removed in Epic 002.
-        // Migration: callers should use NPOI (XSSFWorkbook/HSSFWorkbook) or the new getWorkbookSheetDatasets APIs.
-        // NOTE: The original public API exposed ExcelPackage; removing it is intentional for this epic (task 16 tracks migration).
 
         public static string getExcelSheetName(DataTable dataTable)
         {
@@ -544,317 +513,239 @@ namespace analyticsLibrary.Excel
             return table;
         }
 
-        public static ExcelWorksheet getSheet(string fileName, string sheetName)
+        // -------------------------------------------------------------------------
+        // Write APIs — implemented with NPOI (Apache-2.0). No EPPlus or OleDb.
+        // BREAKING from pre-3.0: EPPlus-based formatting overloads removed;
+        // use the object[,] or IEnumerable<T> overloads instead.
+        // Writing .xlsb is not supported; pass .xlsx paths to write APIs.
+        // -------------------------------------------------------------------------
+
+        private static XSSFWorkbook OpenOrCreateXssf(string fileName)
         {
-            ExcelPackage package;
-            return getSheet(getWorkbook(fileName, out package), sheetName);
-        }
-        public static ExcelWorksheet getSheet(ExcelWorkbook workbook, string sheetName)
-        {
-            var sheet = null as ExcelWorksheet;
-            try
+            if (File.Exists(fileName))
             {
-                if (!string.IsNullOrEmpty(sheetName))
-                    sheet = workbook.Worksheets[sheetName] as ExcelWorksheet;
+                using (var fs = File.OpenRead(fileName))
+                    return new XSSFWorkbook(fs);
             }
-            catch { }
-            if (sheet == null)
-            {
-                var newSheetName = "Sheet1";
-
-                if (string.IsNullOrEmpty(sheetName))
-                {
-                    var sheetNumber = new Func<string, int?>(name =>
-                    {
-                        var returnNumber = null as int?;
-                        var nameFormat = @"^Sheet(?<number>([0-9]+))$";
-                        var matches = Regex.Match(name, nameFormat);
-                        if (matches.Success)
-                            returnNumber = int.Parse(matches.Groups["number"].ToString());
-
-                        return returnNumber;
-                    });
-
-                    var sheetNames = workbook.Worksheets.Cast<ExcelWorksheet>()
-                        .Select(s => s.Name)
-                        .Where(s => sheetNumber(s) != null)
-                        .Select(s => (int)sheetNumber(s));
-
-                    newSheetName = string.Format("Sheet{0}",
-                        sheetNames.Count() > 0 ? (sheetName.Max() + 1).ToString() : "1");
-                }
-
-                sheet = workbook.Worksheets.Add(string.IsNullOrEmpty(sheetName) ? newSheetName : sheetName);
-            }
-            return sheet;
+            return new XSSFWorkbook();
         }
-        
-        public static void copySheet(string fileName, string originalSheetName, string newSheetName)
+
+        private static void SaveXssf(XSSFWorkbook workbook, string fileName)
         {
-            ExcelPackage package;
-            var workbook = getWorkbook(fileName, out package);
-            workbook.Worksheets.Copy(originalSheetName, newSheetName);
-            package.Save();
+            using (var fs = File.Create(fileName))
+                workbook.Write(fs);
         }
 
-        //write sheet data
-        public static void deleteTable(string filename, string sheetName, string tableName) {
-            writeSheetDataXlsx(filename, sheetName, sheet => {
-                if(sheet.Tables[tableName] != null) sheet.Tables.Delete(tableName);
-            });
-        }
-        
-        public static void writeSheetDataXlsx<t>(string fileName, string sheetName, IEnumerable<t> data)
+        private static ISheet GetOrCreateSheet(XSSFWorkbook workbook, string sheetName)
         {
-            writeSheetDataXlsx(fileName, sheetName, data,
-                sheet =>
-                {
-                    sheet.autoSizeColumns();
-                });
+            return workbook.GetSheet(sheetName) ?? workbook.CreateSheet(sheetName);
         }
-        public static void writeSheetDataXlsx<t>(string fileName, string sheetName, IEnumerable<t> data, Action<ExcelWorksheet> formattingMethod)
+
+        private static void SetCellValue(ICell cell, object value)
         {
-            writeSheetDataXlsx(fileName, sheetName,
-                new Action<ExcelWorksheet>(sheet =>
-                {
-                    //build header
-                    var type = typeof(t);
-                    var fields = dataLibrary.getColumnProperties(type);
-                    var row = 1;
-                    var column = 1;
-                    foreach (var field in fields)
-                    {
-                        sheet.Cells[row, column++].Value = field.Name;
-                    }
-                    var headerRange = sheet.Cells[row, 1, row, column];
-                    headerRange.Style.Font.Bold = true;
-                    headerRange.Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
-
-                    row++;
-                    foreach (var item in data)
-                    {
-                        column = 1;
-                        var values = fields
-                            .Select(v => new { field = v, value = v.GetValue(item, null) })
-                            .ToDictionary(v => v.field, v => v.value);
-
-                        foreach (var field in fields)
-                            sheet.Cells[row, column++].Value = values[field];
-
-                        row++;
-                    }
-                }), formattingMethod, false);
-
-
+            if (value == null) { cell.SetCellValue(string.Empty); return; }
+            if (value is double d) { cell.SetCellValue(d); return; }
+            if (value is float f) { cell.SetCellValue(f); return; }
+            if (value is int i) { cell.SetCellValue(i); return; }
+            if (value is long l) { cell.SetCellValue(l); return; }
+            if (value is short s) { cell.SetCellValue(s); return; }
+            if (value is decimal dec) { cell.SetCellValue((double)dec); return; }
+            if (value is bool b) { cell.SetCellValue(b); return; }
+            if (value is DateTime dt) { cell.SetCellValue(dt.ToString("o")); return; }
+            cell.SetCellValue(value.ToString());
         }
 
+        private static void AssertXlsxExtension(string fileName)
+        {
+            var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
+            if (ext == ".xlsb")
+                throw new NotSupportedException("Writing .xlsb is not supported. Use .xlsx instead.");
+        }
+
+        /// <summary>
+        /// Writes an object grid to the named sheet of an .xlsx file.
+        /// Row 0 of <paramref name="data"/> is treated as the first row (no automatic header).
+        /// Creates the file or sheet if absent; does not delete existing sheets.
+        /// </summary>
         public static void writeSheetDataXlsx(string fileName, string sheetName, object[,] data)
         {
-            writeSheetDataXlsx(fileName, sheetName, data, null);
-        }
-        public static void writeSheetDataXlsx(string fileName, string sheetName, object[,] data, Action<ExcelWorksheet> formattingMethod)
-        {
-            writeSheetDataXlsx(fileName, sheetName, data, formattingMethod, false);
+            writeSheetDataXlsx(fileName, sheetName, data, false);
         }
 
+        /// <summary>
+        /// Writes an object grid to the named sheet of an .xlsx file.
+        /// When <paramref name="deleteExisting"/> is true the file is deleted before writing.
+        /// </summary>
         public static void writeSheetDataXlsx(string fileName, string sheetName, object[,] data, bool deleteExisting)
         {
-            writeSheetDataXlsx(fileName, sheetName, data, null, deleteExisting);
-        }
-        public static void writeSheetDataXlsx(string fileName, string sheetName, object[,] data, Action<ExcelWorksheet> formattingMethod, bool deleteExisting)
-        {
-            writeSheetDataXlsx(fileName, sheetName, new Action<ExcelWorksheet>(sheet =>
-            {
-                var rows = data.GetLength(0);
-                var columns = data.GetLength(1);
+            AssertXlsxExtension(fileName);
+            if (deleteExisting && File.Exists(fileName)) File.Delete(fileName);
 
-                for (var i = 0; i < rows; i++)
+            var workbook = OpenOrCreateXssf(fileName);
+            var sheet = GetOrCreateSheet(workbook, sheetName);
+
+            var rows = data.GetLength(0);
+            var cols = data.GetLength(1);
+            for (int r = 0; r < rows; r++)
+            {
+                var row = sheet.GetRow(r) ?? sheet.CreateRow(r);
+                for (int c = 0; c < cols; c++)
+                    SetCellValue(row.GetCell(c) ?? row.CreateCell(c), data[r, c]);
+            }
+
+            SaveXssf(workbook, fileName);
+        }
+
+        /// <summary>
+        /// Writes a strongly-typed enumerable to the named sheet of an .xlsx file.
+        /// The first row will contain property names as column headers.
+        /// </summary>
+        public static void writeSheetDataXlsx<T>(string fileName, string sheetName, IEnumerable<T> data)
+        {
+            AssertXlsxExtension(fileName);
+
+            var workbook = OpenOrCreateXssf(fileName);
+            var sheet = GetOrCreateSheet(workbook, sheetName);
+
+            var fields = dataLibrary.getColumnProperties(typeof(T));
+            int rowIdx = 0;
+
+            // header
+            var headerRow = sheet.GetRow(rowIdx) ?? sheet.CreateRow(rowIdx++);
+            for (int c = 0; c < fields.Length; c++)
+                SetCellValue(headerRow.GetCell(c) ?? headerRow.CreateCell(c), fields[c].Name);
+
+            // data rows
+            foreach (var item in data)
+            {
+                var row = sheet.GetRow(rowIdx) ?? sheet.CreateRow(rowIdx++);
+                for (int c = 0; c < fields.Length; c++)
+                    SetCellValue(row.GetCell(c) ?? row.CreateCell(c), fields[c].GetValue(item, null));
+            }
+
+            SaveXssf(workbook, fileName);
+        }
+
+        /// <summary>
+        /// Removes the named Excel structured table (ListObject) from a sheet in an .xlsx file.
+        /// The cell data is preserved; only the table definition is removed.
+        /// </summary>
+        public static void deleteTable(string fileName, string sheetName, string tableName)
+        {
+            AssertXlsxExtension(fileName);
+            var workbook = OpenOrCreateXssf(fileName);
+            var sheet = workbook.GetSheet(sheetName) as XSSFSheet;
+            if (sheet == null) { SaveXssf(workbook, fileName); return; }
+
+            // NPOI does not expose a RemoveTable API; remove via the private 'tables' field.
+            var tablesField = typeof(XSSFSheet).GetField("tables",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (tablesField?.GetValue(sheet) is Dictionary<string, XSSFTable> tablesDict)
+            {
+                var key = tablesDict.Keys.FirstOrDefault(k =>
+                    string.Equals(tablesDict[k].Name, tableName, StringComparison.OrdinalIgnoreCase));
+                if (key != null) tablesDict.Remove(key);
+            }
+            SaveXssf(workbook, fileName);
+        }
+
+        /// <summary>
+        /// Copies a worksheet within an .xlsx file.
+        /// </summary>
+        public static void copySheet(string fileName, string originalSheetName, string newSheetName)
+        {
+            AssertXlsxExtension(fileName);
+            var workbook = OpenOrCreateXssf(fileName);
+            int srcIdx = workbook.GetSheetIndex(originalSheetName);
+            if (srcIdx < 0) throw new ArgumentException($"Sheet '{originalSheetName}' not found in '{fileName}'.");
+            int newIdx = workbook.NumberOfSheets;
+            workbook.CloneSheet(srcIdx);
+            workbook.SetSheetName(newIdx, newSheetName);
+            SaveXssf(workbook, fileName);
+        }
+
+        /// <summary>
+        /// Removes a worksheet by name from an .xlsx file.
+        /// </summary>
+        public static void removeWorksheet(string fileName, string sheet)
+        {
+            AssertXlsxExtension(fileName);
+            var workbook = OpenOrCreateXssf(fileName);
+            int idx = workbook.GetSheetIndex(sheet);
+            if (idx >= 0) workbook.RemoveSheetAt(idx);
+            SaveXssf(workbook, fileName);
+        }
+
+        /// <summary>
+        /// Removes a worksheet by index (0-based) from an .xlsx file.
+        /// </summary>
+        public static void removeWorksheet(string fileName, int sheetIndex)
+        {
+            AssertXlsxExtension(fileName);
+            var workbook = OpenOrCreateXssf(fileName);
+            if (sheetIndex >= 0 && sheetIndex < workbook.NumberOfSheets)
+                workbook.RemoveSheetAt(sheetIndex);
+            SaveXssf(workbook, fileName);
+        }
+
+        /// <summary>
+        /// Writes a DataSet to an .xlsx file — one sheet per DataTable.
+        /// Supported extension: .xlsx only. Writing .xlsb is not supported.
+        /// </summary>
+        public static void writeWorkbook(string fileName, DataSet dataSet)
+        {
+            writeWorkbook(fileName, dataSet, false);
+        }
+
+        /// <summary>
+        /// Writes a DataSet to an .xlsx file, optionally deleting any existing file first.
+        /// </summary>
+        public static void writeWorkbook(string fileName, DataSet dataSet, bool deleteExistFile)
+        {
+            AssertXlsxExtension(fileName);
+            if (deleteExistFile && File.Exists(fileName)) File.Delete(fileName);
+
+            if (dataSet == null || dataSet.Tables.Count == 0) return;
+
+            var workbook = OpenOrCreateXssf(fileName);
+
+            foreach (DataTable dt in dataSet.Tables)
+            {
+                var sheet = GetOrCreateSheet(workbook, dt.TableName);
+
+                // header row
+                var headerRow = sheet.GetRow(0) ?? sheet.CreateRow(0);
+                for (int c = 0; c < dt.Columns.Count; c++)
+                    SetCellValue(headerRow.GetCell(c) ?? headerRow.CreateCell(c), dt.Columns[c].ColumnName);
+
+                // data rows
+                for (int r = 0; r < dt.Rows.Count; r++)
                 {
-                    for (var j = 0; j < columns; j++)
-                    {
-                        sheet.Cells[i + 1, j + 1].Value = data[i, j];
-                    }
+                    var row = sheet.GetRow(r + 1) ?? sheet.CreateRow(r + 1);
+                    for (int c = 0; c < dt.Columns.Count; c++)
+                        SetCellValue(row.GetCell(c) ?? row.CreateCell(c), dt.Rows[r][c]);
                 }
-                if (formattingMethod != null)
-                {
-                    formattingMethod(sheet);
-                }
-            }), deleteExisting);
-        }
-
-        public static void writeSheetDataXlsx(string fileName, string sheetName, Action<ExcelWorksheet> sheetMethod)
-        {
-            writeSheetDataXlsx(fileName, sheetName, sheetMethod, false);
-        }
-        public static void writeSheetDataXlsx(string fileName, string sheetName, Action<ExcelWorksheet> sheetMethod, bool deleteExisting)
-        {
-            writeSheetDataXlsx(fileName, sheetName, sheetMethod, null, deleteExisting);
-        }
-        public static void writeSheetDataXlsx(string fileName, string sheetName, Action<ExcelWorksheet> sheetMethod, Action<ExcelWorksheet> formattingMethod, bool deleteExisting)
-        {
-            if (deleteExisting && File.Exists(fileName))
-            {
-                File.Delete(fileName);
             }
 
-            ExcelPackage package;
-            var workBook = getWorkbook(fileName, out package);
-            var sheet = getSheet(workBook, sheetName);
-            sheetMethod(sheet);
-            if (formattingMethod != null)
-                formattingMethod(sheet); ;
-            package.Save();
-            workBook.Dispose();
-            sheet.Dispose();
-            package.Dispose();
-        }
-        private static ExcelWorkbook getWorkbook(string fileName, out ExcelPackage package)
-        {
-            package = new ExcelPackage(new FileInfo(fileName));
-            return package.Workbook;
-        }
-        
-        private static Dictionary<string, string> getExcelDataTypeList()
-        {
-            Dictionary<string, string> dataTypeList = new Dictionary<string, string>();
-
-            dataTypeList.Add(ClassDataTypes.SHORT, ExcelDataTypes.NUMBER);
-            dataTypeList.Add(ClassDataTypes.INT, ExcelDataTypes.NUMBER);
-            dataTypeList.Add(ClassDataTypes.LONG, ExcelDataTypes.NUMBER);
-            dataTypeList.Add(ClassDataTypes.STRING, ExcelDataTypes.STRING);
-            dataTypeList.Add(ClassDataTypes.DATE, ExcelDataTypes.DATETIME);
-            dataTypeList.Add(ClassDataTypes.BOOL, ExcelDataTypes.STRING);
-            dataTypeList.Add(ClassDataTypes.DECIMAL, ExcelDataTypes.NUMBER);
-
-            return dataTypeList;
-        }
-        private static string getCreateTableCommand(DataTable dataTable)
-        {
-            Dictionary<string, string> dataTypeList = getExcelDataTypeList();
-
-            StringBuilder sb = new StringBuilder();
-            sb.AppendFormat("CREATE TABLE [{0}] (", getExcelSheetName(dataTable));
-            foreach (DataColumn col in dataTable.Columns)
-            {
-                string type = ExcelDataTypes.STRING;
-                if (dataTypeList.ContainsKey(col.DataType.Name.ToString().ToLower()))
-                {
-                    type = dataTypeList[col.DataType.Name.ToString().ToLower()];
-                }
-                sb.AppendFormat("[{0}] {1},", col.Caption.Replace(' ', '_'), type);
-            }
-            sb = sb.Replace(',', ')', sb.ToString().LastIndexOf(','), 1);
-
-            return sb.ToString();
-        }
-        private static string getInsertCommand(DataTable dataTable, int rowIndex)
-        {
-            var sb = new StringBuilder();
-
-            sb.AppendFormat("INSERT INTO [{0}$](", getExcelSheetName(dataTable));
-            foreach (DataColumn col in dataTable.Columns)
-            {
-                sb.AppendFormat("[{0}],", col.Caption.Replace(' ', '_'));
-            }
-            sb = sb.Replace(',', ')', sb.ToString().LastIndexOf(','), 1);
-            sb.Append("VALUES (");
-            foreach (DataColumn col in dataTable.Columns)
-            {
-                sb.AppendFormat("'{0}',", dataTable.Rows[rowIndex][col].ToString());
-            }
-            sb = sb.Replace(',', ')', sb.ToString().LastIndexOf(','), 1);
-            return sb.ToString();
+            SaveXssf(workbook, fileName);
         }
 
-        public static void writeWorkbook(string fileName, DataTable dataTable, Action<ExcelWorksheet> formattingMethod)
-        {
-            writeWorkbook(fileName, dataTable, false, formattingMethod);
-        }
+        /// <summary>
+        /// Writes a single DataTable to an .xlsx file.
+        /// </summary>
         public static void writeWorkbook(string fileName, DataTable dataTable)
         {
             writeWorkbook(fileName, dataTable, false);
         }
+
+        /// <summary>
+        /// Writes a single DataTable to an .xlsx file, optionally deleting any existing file first.
+        /// </summary>
         public static void writeWorkbook(string fileName, DataTable dataTable, bool deleteExistFile)
         {
-            writeWorkbook(fileName, dataTable, deleteExistFile, null);
-        }
-        public static void writeWorkbook(string fileName, DataTable dataTable, bool deleteExistFile, Action<ExcelWorksheet> formattingMethod)
-        {
-            var dataSet = new DataSet();
-            dataSet.Tables.Add(dataTable);
-            writeWorkbook(fileName, dataSet, deleteExistFile);
-
-            if (formattingMethod != null)
-            {
-                var package = new ExcelPackage(new FileInfo(fileName));
-                var workbook = package.Workbook;
-                var sheet = getSheet(workbook, dataTable.TableName);
-                formattingMethod(sheet);
-            }
-        }
-
-        public static void writeWorkbook(string fileName, DataSet dataSet, bool deleteExistFile)
-        {
-            if (deleteExistFile && File.Exists(fileName))
-            {
-                File.Delete(fileName);
-            }
-            writeWorkbook(fileName, dataSet);
-        }
-        public static void writeWorkbook(string fileName, DataSet dataSet)
-        {
-            if (dataSet != null && dataSet.Tables.Count > 0)
-            {
-                using (OleDbConnection connection = new OleDbConnection(connectionString(fileName)))
-                {
-                    connection.Open();
-
-                    foreach (DataTable dt in dataSet.Tables)
-                    {
-                        var command = new OleDbCommand(getCreateTableCommand(dt), connection);
-                        command.ExecuteNonQuery();
-
-                        for (int rowIndex = 0; rowIndex < dt.Rows.Count; rowIndex++)
-                        {
-                            command = new OleDbCommand(getInsertCommand(dt, rowIndex), connection);
-                            command.ExecuteNonQuery();
-                        }
-                    }
-                }
-            }
-        }
-
-        public static void removeWorksheet(string fileName, string sheet)
-        {
-            removeWorksheet(fileName, (object)sheet);
-        }
-        public static void removeWorksheet(string fileName, int sheet)
-        {
-            removeWorksheet(fileName, (object)sheet);
-        }
-        private static void removeWorksheet(string fileName, object sheet)
-        {
-            var package = (ExcelPackage)null;
-            var workbook = getWorkbook(fileName, out package);
-            if (sheet is int)
-                workbook.Worksheets.Delete((int)sheet);
-            else if (sheet is string)
-                workbook.Worksheets.Delete((string)sheet);
-            else
-                throw new ApplicationException("Sheet id type must be an int or a string value.");
-
-            package.Save();
-        }
-
-        public static void numberFormatRow(ExcelWorksheet sheet, int row, string format)
-        {
-            var formatRow = sheet.Row(row);
-            formatRow.Style.Numberformat.Format = format;
-        }
-        public static void numberFormatColumn(ExcelWorksheet sheet, int column, string format)
-        {
-            var formatColumn = sheet.Column(column);
-            formatColumn.Style.Numberformat.Format = format;
+            var ds = new DataSet();
+            ds.Tables.Add(dataTable.Copy());
+            writeWorkbook(fileName, ds, deleteExistFile);
         }
     }
 }
