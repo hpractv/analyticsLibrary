@@ -41,20 +41,24 @@ namespace analyticsLibrary.Excel.Tests
             using (var ms = new MemoryStream())
             {
                 wb.Write(ms);
-                ms.Position = 0;
-                var datasets = excelLibrary.getWorkbookSheetDatasets(ms, ".xlsx");
-                Assert.Equal(2, datasets.Length);
+                // NPOI may close the source stream on write; copy bytes to a new readable stream for consumers
+                var bytes = ms.ToArray();
+                using (var r = new MemoryStream(bytes))
+                {
+                    var datasets = excelLibrary.getWorkbookSheetDatasets(r, ".xlsx");
+                    Assert.Equal(2, datasets.Length);
 
-                var ds1 = datasets[0];
-                Assert.Equal("WithTable", ds1.DataSetName);
-                Assert.Equal(1, ds1.Tables.Count);
-                Assert.Equal("MyTable", ds1.Tables[0].TableName);
-                Assert.Equal("ColA", ds1.Tables[0].Columns[0].ColumnName);
+                    var ds1 = datasets[0];
+                    Assert.Equal("WithTable", ds1.DataSetName);
+                    Assert.Equal(1, ds1.Tables.Count);
+                    Assert.Equal("MyTable", ds1.Tables[0].TableName);
+                    Assert.Equal("ColA", ds1.Tables[0].Columns[0].ColumnName);
 
-                var ds2 = datasets[1];
-                Assert.Equal("NoTable", ds2.DataSetName);
-                Assert.Equal(1, ds2.Tables.Count);
-                Assert.Equal("X", ds2.Tables[0].Columns[0].ColumnName);
+                    var ds2 = datasets[1];
+                    Assert.Equal("NoTable", ds2.DataSetName);
+                    Assert.Equal(1, ds2.Tables.Count);
+                    Assert.Equal("X", ds2.Tables[0].Columns[0].ColumnName);
+                }
             }
         }
     }
