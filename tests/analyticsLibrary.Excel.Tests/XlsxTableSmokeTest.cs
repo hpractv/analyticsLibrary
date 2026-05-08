@@ -2,7 +2,9 @@ using System;
 using System.IO;
 using System.Linq;
 using Xunit;
-using OfficeOpenXml;
+using NPOI.XSSF.UserModel;
+using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 
 namespace analyticsLibrary.Excel.Tests
 {
@@ -11,29 +13,42 @@ namespace analyticsLibrary.Excel.Tests
         [Fact]
         public void GetWorkbookSheetDatasets_Returns_Tables_And_Fallback()
         {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var p = new ExcelPackage())
+            var workbook = new XSSFWorkbook();
+            var sheetWithTable = workbook.CreateSheet("TableSheet");
+            var headerRow = sheetWithTable.CreateRow(0);
+            headerRow.CreateCell(0).SetCellValue("ColA");
+            headerRow.CreateCell(1).SetCellValue("ColB");
+            var r1 = sheetWithTable.CreateRow(1);
+            r1.CreateCell(0).SetCellValue("r1c1");
+            r1.CreateCell(1).SetCellValue("r1c2");
+
+            var xssfSheet = sheetWithTable as XSSFSheet;
+            if (xssfSheet != null)
             {
-                var wsTable = p.Workbook.Worksheets.Add("TableSheet");
-                wsTable.Cells[1, 1].Value = "ColA";
-                wsTable.Cells[1, 2].Value = "ColB";
-                wsTable.Cells[2, 1].Value = "r1c1";
-                wsTable.Cells[2, 2].Value = "r1c2";
-                var tblRange = wsTable.Cells[1, 1, 2, 2];
-                wsTable.Tables.Add(tblRange, "MyTable");
+                var table = xssfSheet.CreateTable();
+                table.CellReferences = new AreaReference("A1:B2", NPOI.SS.SpreadsheetVersion.EXCEL2007);
+                table.Name = "MyTable";
+            }
 
-                var wsNo = p.Workbook.Worksheets.Add("NoTable");
-                wsNo.Cells[1, 1].Value = "H1";
-                wsNo.Cells[1, 2].Value = "H2";
-                wsNo.Cells[2, 1].Value = "a";
-                wsNo.Cells[2, 2].Value = "b";
+            var sheetNoTable = workbook.CreateSheet("NoTable");
+            var h2 = sheetNoTable.CreateRow(0);
+            h2.CreateCell(0).SetCellValue("H1");
+            h2.CreateCell(1).SetCellValue("H2");
+            var n1 = sheetNoTable.CreateRow(1);
+            n1.CreateCell(0).SetCellValue("a");
+            n1.CreateCell(1).SetCellValue("b");
 
-                using (var ms = new MemoryStream())
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp))
                 {
-                    p.SaveAs(ms);
-                    ms.Position = 0;
+                    workbook.Write(fs);
+                }
 
-                    var datasets = excelLibrary.getWorkbookSheetDatasets(ms, ".xlsx");
+                using (var fs2 = File.OpenRead(temp))
+                {
+                    var datasets = excelLibrary.getWorkbookSheetDatasets(fs2, ".xlsx");
                     Assert.Equal(2, datasets.Length);
 
                     var dsTable = datasets.FirstOrDefault(d => d.DataSetName == "TableSheet");
@@ -49,6 +64,10 @@ namespace analyticsLibrary.Excel.Tests
                     Assert.Equal("NoTable", dtNo.TableName);
                     Assert.Equal("H1", dtNo.Columns[0].ColumnName);
                 }
+            }
+            finally
+            {
+                try { File.Delete(temp); } catch { }
             }
         }
     }

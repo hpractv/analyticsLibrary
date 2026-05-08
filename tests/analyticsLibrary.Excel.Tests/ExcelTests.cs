@@ -1,9 +1,11 @@
 using System;
 using System.Data;
 using System.IO;
-using OfficeOpenXml;
 using analyticsLibrary.Excel;
 using Xunit;
+using NPOI.XSSF.UserModel;
+using NPOI.SS.UserModel;
+using NPOI.SS.Util;
 
 namespace analyticsLibrary.Excel.Tests
 {
@@ -65,24 +67,33 @@ namespace analyticsLibrary.Excel.Tests
         }
 
         [Fact]
-        public void EPPlus_Workbook_RoundTrip_InMemory()
+        public void Xssf_Workbook_RoundTrip_InMemory()
         {
-            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-            using (var ms = new MemoryStream())
+            var workbook = new XSSFWorkbook();
+            var sheet = workbook.CreateSheet("Sheet1");
+            var header = sheet.CreateRow(0);
+            header.CreateCell(0).SetCellValue("ColA");
+            var row = sheet.CreateRow(1);
+            row.CreateCell(0).SetCellValue("hello");
+
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
             {
-                using (var p = new ExcelPackage())
+                using (var fs = File.Create(temp))
                 {
-                    var ws = p.Workbook.Worksheets.Add("Sheet1");
-                    ws.Cells[1, 1].Value = "hello";
-                    p.SaveAs(ms);
+                    workbook.Write(fs);
                 }
 
-                ms.Position = 0;
-                using (var p2 = new ExcelPackage(ms))
+                using (var fs2 = File.OpenRead(temp))
                 {
-                    var v = p2.Workbook.Worksheets[0].Cells[1, 1].Text;
+                    var read = new XSSFWorkbook(fs2);
+                    var v = read.GetSheetAt(0).GetRow(1).GetCell(0).ToString();
                     Assert.Equal("hello", v);
                 }
+            }
+            finally
+            {
+                try { File.Delete(temp); } catch { }
             }
         }
 
@@ -98,6 +109,72 @@ namespace analyticsLibrary.Excel.Tests
             dt2.TableName = "Name";
             dt2.ExtendedProperties["TableName"] = "Other Name";
             Assert.Equal("Other_Name", excelLibrary.getExcelSheetName(dt2));
+        }
+
+        [Fact]
+        public void GetWorkbookSheetDatasets_InMemory_Xlsx_With_Table_And_Fallback()
+        {
+            var workbook = new XSSFWorkbook();
+            var sheetWithTable = workbook.CreateSheet("WithTable");
+            var headerRow = sheetWithTable.CreateRow(0);
+            headerRow.CreateCell(0).SetCellValue("ColA");
+            headerRow.CreateCell(1).SetCellValue("ColB");
+            var r1 = sheetWithTable.CreateRow(1);
+            r1.CreateCell(0).SetCellValue(1);
+            r1.CreateCell(1).SetCellValue("A");
+            var r2 = sheetWithTable.CreateRow(2);
+            r2.CreateCell(0).SetCellValue(2);
+            r2.CreateCell(1).SetCellValue("B");
+            var xssfSheet = sheetWithTable as XSSFSheet;
+            if (xssfSheet != null)
+            {
+                var table = xssfSheet.CreateTable();
+                table.CellReferences = new NPOI.SS.Util.AreaReference("A1:B3", NPOI.SS.SpreadsheetVersion.EXCEL2007);
+                table.Name = "MyTable";
+            }
+
+            var sheetNoTable = workbook.CreateSheet("NoTable");
+            var h2 = sheetNoTable.CreateRow(0);
+            h2.CreateCell(0).SetCellValue("X");
+            h2.CreateCell(1).SetCellValue("Y");
+            var n1 = sheetNoTable.CreateRow(1);
+            n1.CreateCell(0).SetCellValue(10);
+            n1.CreateCell(1).SetCellValue("Z");
+
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp))
+                {
+                    workbook.Write(fs);
+                }
+
+                using (var fs2 = File.OpenRead(temp))
+                {
+                    var datasets = excelLibrary.getWorkbookSheetDatasets(fs2, ".xlsx");
+                    Assert.Equal(2, datasets.Length);
+
+                    var ds1 = datasets[0];
+                    Assert.Equal("WithTable", ds1.DataSetName);
+                    Assert.Equal(1, ds1.Tables.Count);
+                    var t1 = ds1.Tables[0];
+                    Assert.Equal("MyTable", t1.TableName);
+                    Assert.Equal(2, t1.Columns.Count);
+                    Assert.Equal(2, t1.Rows.Count);
+
+                    var ds2 = datasets[1];
+                    Assert.Equal("NoTable", ds2.DataSetName);
+                    Assert.Equal(1, ds2.Tables.Count);
+                    var t2 = ds2.Tables[0];
+                    Assert.Equal("NoTable", t2.TableName);
+                    Assert.Equal(2, t2.Columns.Count);
+                    Assert.Equal(1, t2.Rows.Count);
+                }
+            }
+            finally
+            {
+                try { File.Delete(temp); } catch { }
+            }
         }
     }
 }
