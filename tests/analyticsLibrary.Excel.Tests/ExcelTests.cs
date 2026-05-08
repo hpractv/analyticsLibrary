@@ -479,5 +479,94 @@ namespace analyticsLibrary.Excel.Tests
             Assert.Throws<NotSupportedException>(() =>
                 excelLibrary.writeSheetDataXlsx("/tmp/test.xlsb", "Sheet1", new object[,] { { "x" } }));
         }
+
+        [Fact]
+        public void GetWorkbookSheetDatasets_XlsbPath_ReadsXlsxStreamViaAutoDetect()
+        {
+            // ExcelDataReader.CreateReader() auto-detects format from file signature regardless
+            // of extension hint. Passing an in-memory xlsx stream with ".xlsb" hint exercises the
+            // ExcelDataReader code path (xlsb route) in getWorkbookSheetDatasets.
+            // Note: a real .xlsb fixture would be needed to test binary xlsb format specifically;
+            // CreateReader handles both xlsx and xlsb formats via auto-detection.
+            var wb = new XSSFWorkbook();
+            var sheet = wb.CreateSheet("SmokeSheet");
+            var hr = sheet.CreateRow(0);
+            hr.CreateCell(0).SetCellValue("Alpha");
+            hr.CreateCell(1).SetCellValue("Beta");
+            var dr = sheet.CreateRow(1);
+            dr.CreateCell(0).SetCellValue("a1");
+            dr.CreateCell(1).SetCellValue("b1");
+
+            byte[] bytes;
+            using (var ms = new MemoryStream())
+            {
+                wb.Write(ms, leaveOpen: true);
+                bytes = ms.ToArray();
+            }
+
+            using var readStream = new MemoryStream(bytes);
+            // Pass ".xlsb" hint to exercise the ExcelDataReader code path.
+            var datasets = excelLibrary.getWorkbookSheetDatasets(readStream, ".xlsb");
+
+            Assert.Single(datasets);
+            Assert.Equal("SmokeSheet", datasets[0].DataSetName);
+            Assert.Single(datasets[0].Tables);
+            var dt = datasets[0].Tables[0];
+            Assert.Equal(2, dt.Columns.Count);
+            Assert.Single(dt.Rows);
+            Assert.Equal("a1", dt.Rows[0][0].ToString());
+        }
+
+        [Fact]
+        public void DeleteTable_RemovesTableDefinition_LeavingCellData()
+        {
+            var temp = Path.Combine(Path.GetTempPath(), $"deleteTable_{Guid.NewGuid():N}.xlsx");
+            try
+            {
+                // Build workbook with one structured XSSF table.
+                var wb = new XSSFWorkbook();
+                var xssfSheet = (XSSFSheet)wb.CreateSheet("Data");
+                var h = xssfSheet.CreateRow(0);
+                h.CreateCell(0).SetCellValue("ID");
+                h.CreateCell(1).SetCellValue("Name");
+                var r1 = xssfSheet.CreateRow(1);
+                r1.CreateCell(0).SetCellValue("1");
+                r1.CreateCell(1).SetCellValue("Alice");
+
+                var tbl = xssfSheet.CreateTable();
+                tbl.Name = "PeopleTable";
+                tbl.CellReferences = new NPOI.SS.Util.AreaReference("A1:B2", NPOI.SS.SpreadsheetVersion.EXCEL2007);
+                var ct = tbl.GetCTTable();
+                ct.id = 1U;
+                ct.name = "PeopleTable";
+                ct.displayName = "PeopleTable";
+
+                using (var fs = File.Create(temp))
+                    wb.Write(fs);
+
+                // Confirm table exists before removal.
+                using (var fs = File.OpenRead(temp))
+                {
+                    var wb2 = new XSSFWorkbook(fs);
+                    var s = (XSSFSheet)wb2.GetSheet("Data");
+                    Assert.NotEmpty(s.GetTables());
+                }
+
+                // Remove the table.
+                excelLibrary.deleteTable(temp, "Data", "PeopleTable");
+
+                // Verify table definition gone; cell data preserved.
+                using (var fs = File.OpenRead(temp))
+                {
+                    var wb3 = new XSSFWorkbook(fs);
+                    var s = (XSSFSheet)wb3.GetSheet("Data");
+                    Assert.Empty(s.GetTables());
+                    // Cell data still present.
+                    Assert.Equal("ID", s.GetRow(0).GetCell(0).StringCellValue);
+                    Assert.Equal("Alice", s.GetRow(1).GetCell(1).StringCellValue);
+                }
+            }
+            finally { try { File.Delete(temp); } catch { } }
+        }
     }
 }

@@ -55,7 +55,7 @@ namespace analyticsLibrary.Excel
             {
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                 using (var stream = File.OpenRead(fileName))
-                using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
                     var ds = reader.AsDataSet();
                     foreach (DataTable t in ds.Tables) names.Add(t.TableName);
@@ -178,7 +178,7 @@ namespace analyticsLibrary.Excel
             {
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                 using (var stream = File.OpenRead(fileName))
-                using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
                     var conf = new ExcelDataSetConfiguration { ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true } };
                     var dsFromReader = reader.AsDataSet(conf);
@@ -326,7 +326,7 @@ namespace analyticsLibrary.Excel
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
                 using (var stream = File.OpenRead(fileName))
                 {
-                    using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                    using (var reader = ExcelReaderFactory.CreateReader(stream))
                     {
                         var conf = new ExcelDataSetConfiguration
                         {
@@ -441,7 +441,7 @@ namespace analyticsLibrary.Excel
             else if (ext == ".xlsb")
             {
                 System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
-                using (var reader = ExcelReaderFactory.CreateBinaryReader(stream))
+                using (var reader = ExcelReaderFactory.CreateReader(stream))
                 {
                     var conf = new ExcelDataSetConfiguration { ConfigureDataTable = _ => new ExcelDataTableConfiguration { UseHeaderRow = true } };
                     var dsFromReader = reader.AsDataSet(conf);
@@ -637,14 +637,47 @@ namespace analyticsLibrary.Excel
             var sheet = workbook.GetSheet(sheetName) as XSSFSheet;
             if (sheet == null) { SaveXssf(workbook, fileName); return; }
 
-            // NPOI does not expose a RemoveTable API; remove via the private 'tables' field.
+            // NPOI does not expose a RemoveTable API. Full removal requires three steps so that
+            // the table is not re-loaded when the saved file is re-opened:
+            //   1. Remove from the private 'tables' field so GetTables() on the current instance returns nothing.
+            //   2. Remove the <tablePart r:id="..."/> from CT_Worksheet so the sheet XML does not reference
+            //      the table part (prevents re-loading on next open).
+            //   3. Unregister the table package part via the protected RemoveRelation method (reflection) so
+            //      NPOI does not re-write the table XML to the ZIP archive on save.
             var tablesField = typeof(XSSFSheet).GetField("tables",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             if (tablesField?.GetValue(sheet) is Dictionary<string, XSSFTable> tablesDict)
             {
                 var key = tablesDict.Keys.FirstOrDefault(k =>
                     string.Equals(tablesDict[k].Name, tableName, StringComparison.OrdinalIgnoreCase));
-                if (key != null) tablesDict.Remove(key);
+                if (key != null)
+                {
+                    var table = tablesDict[key];
+                    tablesDict.Remove(key);
+
+                    // Step 2: remove <tablePart r:id="..."/> from CT_Worksheet.
+                    // GetRelationId returns the r:id for a given part; the same id is used in
+                    // CT_TablePart.id. The dict key itself is also typically the r:id in NPOI.
+                    var ctSheet = sheet.GetCTWorksheet();
+                    if (ctSheet.tableParts?.tablePart != null)
+                    {
+                        // Try to get the exact r:id; fall back to removing by table name match.
+                        string relId = null;
+                        try { relId = sheet.GetRelationId(table); } catch { }
+                        if (relId != null)
+                            ctSheet.tableParts.tablePart.RemoveAll(tp => tp.id == relId);
+                        else
+                            // The dict key in NPOI is typically the r:id.
+                            ctSheet.tableParts.tablePart.RemoveAll(tp => tp.id == key);
+                    }
+
+                    // Step 3: call the protected RemoveRelation via reflection so the table part
+                    // is deregistered and not written to the ZIP.
+                    var removeRel = typeof(XSSFSheet).BaseType?.GetMethod("RemoveRelation",
+                        System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance,
+                        null, new[] { typeof(XSSFTable).BaseType }, null);
+                    removeRel?.Invoke(sheet, new object[] { table });
+                }
             }
             SaveXssf(workbook, fileName);
         }

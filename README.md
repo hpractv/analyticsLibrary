@@ -9,6 +9,8 @@ A family of focused .NET 8 packages for reading and writing CSV and fixed-width 
 
 **Version 2.0.0** is a breaking-change release. The monolithic `analyticsLibrary` 1.x package has been split into focused packages. SQL Server, Oracle, SAS, and Sybase provider support has been removed. See the [Migration Guide](#migration-guide) below.
 
+**`analyticsLibrary.Excel` 3.0.0** removes EPPlus (PolyForm NonCommercial) in favor of FOSS-only dependencies (NPOI Apache-2.0, ExcelDataReader MIT). This is a breaking change for callers using EPPlus-typed API surface. See [From analyticsLibrary.Excel 2.x to 3.0.0](#from-analyticslibraryexcel-2x-to-300) in the Migration Guide.
+
 ---
 
 ## Table of Contents
@@ -69,7 +71,7 @@ dotnet add package analyticsLibrary.Algorithms
 # Statistics
 dotnet add package analyticsLibrary.Statistics
 
-# Excel file operations (Windows runtime only)
+# Excel file operations (cross-platform: .xlsx/.xls/.xlsb read; .xlsx/.xls write)
 dotnet add package analyticsLibrary.Excel
 
 # Access database support (Windows runtime only)
