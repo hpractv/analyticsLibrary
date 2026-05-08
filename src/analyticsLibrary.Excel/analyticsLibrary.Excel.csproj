@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <Version>2.0.0</Version>
+    <Version>3.0.0</Version>
     <Authors>hpractv</Authors>
     <Copyright>Copyright (c) hpractv</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
@@ -10,17 +10,15 @@
     <RepositoryType>git</RepositoryType>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>analyticsLibrary.Excel</PackageId>
-    <Description>Excel file operations for the analyticsLibrary family. Provides helpers for reading and writing Excel workbooks and worksheets using EPPlus. Depends on System.Data.OleDb, which is Windows-only at runtime.</Description>
-    <PackageTags>analytics;excel;epplus;oledb;spreadsheet</PackageTags>
-    <PackageReleaseNotes>2.0.0: Remodeled from the monolithic analyticsLibrary package. EPPlus pinned to 5.8.14 (last PolyForm Noncommercial release). Targets net8.0.</PackageReleaseNotes>
+    <Description>Excel file read/write (.xlsx/.xls/.xlsb) for the analyticsLibrary family. Uses NPOI (Apache-2.0) for .xlsx/.xls reading and writing, and ExcelDataReader (MIT) for .xlsb reading. No commercial license required. Writing .xlsb is not supported.</Description>
+    <PackageTags>analytics;excel;npoi;exceldatareader;spreadsheet;xlsx;xls;xlsb</PackageTags>
+    <PackageReleaseNotes>3.0.0: Removed EPPlus (PolyForm NonCommercial) and System.Data.OleDb. Write APIs ported to NPOI (Apache-2.0). Read APIs use NPOI + ExcelDataReader (MIT). Breaking: removed ExcelWorksheet-based public API surface (getSheet, numberFormatRow/Column, Action&lt;ExcelWorksheet&gt; overloads). See README for migration. 2.0.0: Remodeled from the monolithic analyticsLibrary package. Targets net8.0.</PackageReleaseNotes>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="EPPlus" />
-    <PackageReference Include="System.Data.OleDb" />
     <PackageReference Include="ExcelDataReader" />
     <PackageReference Include="ExcelDataReader.DataSet" />
     <PackageReference Include="NPOI" />

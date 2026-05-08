@@ -4,13 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <!--
-      EPPlus is pinned to 5.8.14, the last release under the PolyForm Noncommercial License.
-      EPPlus 6.0+ switched to a commercial license. Do not upgrade without a license review.
-    -->
-    <PackageVersion Include="EPPlus" Version="5.8.14" />
-    <!--
-      System.Data.OleDb and System.Data.OleDb are Windows-only at runtime.
-      They are intentionally isolated to analyticsLibrary.Excel and analyticsLibrary.Access.
+      System.Data.OleDb is Windows-only at runtime.
+      Intentionally isolated to analyticsLibrary.Access.
     -->
     <PackageVersion Include="System.Data.OleDb" Version="8.0.0" />
     <!--

@@ -33,12 +33,12 @@ A family of focused .NET 8 packages for reading and writing CSV and fixed-width 
 | `analyticsLibrary.Core` | CSV, fixed-width, shared data objects, helpers | `analyticsLibrary.Core` | none |
 | `analyticsLibrary.Algorithms` | Merge sort, quick sort, search | `analyticsLibrary.Algorithms` | Core |
 | `analyticsLibrary.Statistics` | Covariance, dot product, histogram, normalize, stddev, variance | `analyticsLibrary.Statistics` | Core |
-| `analyticsLibrary.Excel` | Excel file read/write via EPPlus | `analyticsLibrary.Excel` | Core, EPPlus 5.8.14, System.Data.OleDb (Windows) |
+| `analyticsLibrary.Excel` | Excel file read/write (.xlsx/.xls/.xlsb) via NPOI and ExcelDataReader | `analyticsLibrary.Excel` | Core, NPOI (Apache-2.0), ExcelDataReader (MIT) |
 | `analyticsLibrary.Access` | Access database file support | `analyticsLibrary.Access` | Core, System.Data.OleDb (Windows) |
 | `analyticsLibrary.Hadoop` | Hadoop/ODBC data access | `analyticsLibrary.Hadoop` | Core, System.Data.Odbc |
 | `analyticsLibrary` | Transition metapackage (references all above) | — | all above |
 
-> **Platform note**: `analyticsLibrary.Excel` and `analyticsLibrary.Access` depend on `System.Data.OleDb`, which is Windows-only at runtime. These packages compile on all platforms but can only execute on Windows.
+> **Platform note**: `analyticsLibrary.Access` depends on `System.Data.OleDb`, which is Windows-only at runtime. `analyticsLibrary.Excel` uses NPOI and ExcelDataReader, which are cross-platform.
 
 ---
 
@@ -265,8 +265,8 @@ Store the NuGet API key as a repository secret named `NUGET_API_KEY`. Never comm
 
 - Keep packages focused. Core must not depend on Excel, Access, Hadoop, or provider-specific packages.
 - Add tests for all new public logic before submitting a PR. Tests live in `tests/`.
-- EPPlus is intentionally pinned to 5.8.14 (the last release under the PolyForm Noncommercial License). EPPlus 6+ requires a commercial license. Do not upgrade without a license review.
-- `System.Data.OleDb` and `System.Data.Access` are Windows-only at runtime. Keep them isolated to `analyticsLibrary.Excel` and `analyticsLibrary.Access`.
+- `analyticsLibrary.Excel` uses NPOI (Apache-2.0) and ExcelDataReader (MIT)—no commercial license required. All Excel read/write operations are FOSS.
+- `System.Data.OleDb` is Windows-only at runtime. Keep it isolated to `analyticsLibrary.Access`.
 - Package versions are centrally managed in `Directory.Packages.props`. Add new dependencies there first.
 
 ---
@@ -299,3 +299,29 @@ Store the NuGet API key as a repository secret named `NUGET_API_KEY`. Never comm
 5. If you called `fromSasDate()`, rename it to `fromSasEpochDate()`.
 
 **Target framework**: Projects must target `net8.0` or later. `netcoreapp3.1` is no longer supported.
+
+### From `analyticsLibrary.Excel` 2.x to 3.0.0
+
+`analyticsLibrary.Excel` 3.0.0 removes EPPlus and OleDb entirely. All Excel read and write operations now use **NPOI** (Apache-2.0) and **ExcelDataReader** (MIT).
+
+**Removed public APIs**
+
+| Removed member | Replacement |
+|---|---|
+| `getSheet(string, string)` / `getSheet(ExcelWorkbook, string)` | Use `new XSSFWorkbook(stream)` / `workbook.GetSheet(name)` from NPOI directly |
+| `writeSheetDataXlsx(…, Action<ExcelWorksheet>)` overloads | Use `writeSheetDataXlsx(fileName, sheetName, object[,])` or the `IEnumerable<T>` overload |
+| `writeWorkbook(…, Action<ExcelWorksheet>)` overload | Use `writeWorkbook(fileName, dataTable)` then open with NPOI to apply formatting |
+| `numberFormatRow(ExcelWorksheet, int, string)` | Apply cell styles directly via NPOI `ISheet` / `IRow` |
+| `numberFormatColumn(ExcelWorksheet, int, string)` | Apply cell styles directly via NPOI `ISheet` / `IColumn` |
+| `getExcelConnection` | Removed; no replacement (EPPlus package removed) |
+
+**New / expanded APIs (3.0.0)**
+
+- `getWorkbookSheetDatasets(string fileName)` — returns `DataSet[]`, one per worksheet; `.xlsx` sheets include per-table `DataTable` instances for Excel structured tables; all three formats supported.
+- `getWorkbookSheetDatasets(Stream stream, string formatHint)` — stream overload for in-memory use.
+- `writeSheetDataXlsx(string, string, object[,], bool)` — write data grid to .xlsx, optionally deleting existing file.
+- `writeSheetDataXlsx<T>(string, string, IEnumerable<T>)` — write typed list with auto header row.
+- `copySheet(string, string, string)` — clone a worksheet within an .xlsx file.
+- `deleteTable(string, string, string)` — remove a named Excel structured table from a sheet.
+
+**xlsb write**: Writing `.xlsb` files is not supported. Calls to write APIs with a `.xlsb` path throw `NotSupportedException`. Reading `.xlsb` is supported via ExcelDataReader.
