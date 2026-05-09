@@ -19,9 +19,9 @@ namespace analyticsLibrary.Algorithms
         private static bool decimalSearch(object value1, object value2) => (decimal)value1 <= (decimal)value2;
 
 
-        public static Func<object, object, bool> pickFunction<k>()
+        public static Func<object, object, bool> pickFunction<TKey>()
         {
-            var kType = typeof(k);
+            var kType = typeof(TKey);
             Func<object, object, bool> searchFunction;
             switch (kType)
             {

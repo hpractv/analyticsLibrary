@@ -37,11 +37,11 @@ namespace analyticsLibrary.Hadoop
             }
             return data;
         }
-        public IEnumerable<t> execute<t>(string sql, Func<IEnumerable<DataRow>, IEnumerable<t>> format)
+        public IEnumerable<TResult> execute<TResult>(string sql, Func<IEnumerable<DataRow>, IEnumerable<TResult>> format)
         {
             return execute(sql, format, null);
         }
-        private IEnumerable<t> execute<t>(string sql, Func<IEnumerable<DataRow>, IEnumerable<t>> format, Action<IEnumerable<DataRow>> process = null)
+        private IEnumerable<TResult> execute<TResult>(string sql, Func<IEnumerable<DataRow>, IEnumerable<TResult>> format, Action<IEnumerable<DataRow>> process = null)
         {
             var data = execute(sql);
             if (process != null) process(data);

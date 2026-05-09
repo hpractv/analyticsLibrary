@@ -26,9 +26,9 @@ namespace analyticsLibrary.Algorithms
 
         private static bool decimalMore(object value1, object value2) => (decimal)value1 >= (decimal)value2;
 
-        public static Func<object, object, bool> pickFunction<k>(bool descending = false)
+        public static Func<object, object, bool> pickFunction<TValue>(bool descending = false)
         {
-            var kType = typeof(k);
+            var kType = typeof(TValue);
             Func<object, object, bool> checkFunction;
             switch (kType)
             {
@@ -60,19 +60,19 @@ namespace analyticsLibrary.Algorithms
             return checkFunction;
         }
 
-        public static k[] mergeSort<k>(this k[] sortItems, Func<object, object, bool> compare)
+        public static TValue[] mergeSort<TValue>(this TValue[] sortItems, Func<object, object, bool> compare)
             => sortItems.mergeSort(false, compare);
 
-        public static k[] mergeSort<k>(this k[] sortItems, bool descending = false)
+        public static TValue[] mergeSort<TValue>(this TValue[] sortItems, bool descending = false)
             => sortItems.mergeSort(descending, null);
 
-        internal static k[] mergeSort<k>(this k[] sortItems, bool descending = false, Func<object, object, bool> compare = null)
+        internal static TValue[] mergeSort<TValue>(this TValue[] sortItems, bool descending = false, Func<object, object, bool> compare = null)
         {
-            var checkFunction = compare ?? pickFunction<k>(descending);
+            var checkFunction = compare ?? pickFunction<TValue>(descending);
 
             return doSort(sortItems);
 
-            k[] doSort(k[] subSortItems)
+            TValue[] doSort(TValue[] subSortItems)
             {
                 if (subSortItems.Length == 1)
                 {
@@ -83,7 +83,7 @@ namespace analyticsLibrary.Algorithms
                     var mid = subSortItems.Length / 2;
                     var sortedA = doSort(subSortItems.Take(mid).ToArray());
                     var sortedB = doSort(subSortItems.Skip(mid).ToArray());
-                    var sorting = new List<k>();
+                    var sorting = new List<TValue>();
 
                     int iA = 0, iB = 0;
 
@@ -122,15 +122,15 @@ namespace analyticsLibrary.Algorithms
             }
         }
 
-        public static k[] quickSort<k>(this k[] sortItems, Func<object, object, bool> compare)
+        public static TValue[] quickSort<TValue>(this TValue[] sortItems, Func<object, object, bool> compare)
             => sortItems.quickSort(false, compare);
 
-        public static k[] quickSort<k>(this k[] sortItems, bool descending = false)
+        public static TValue[] quickSort<TValue>(this TValue[] sortItems, bool descending = false)
             => sortItems.quickSort(descending, null);
 
-        internal static k[] quickSort<k>(this k[] sortItems, bool descending = false, Func<object, object, bool> compare = null)
+        internal static TValue[] quickSort<TValue>(this TValue[] sortItems, bool descending = false, Func<object, object, bool> compare = null)
         {
-            var checkFunction = compare ?? pickFunction<k>(descending);
+            var checkFunction = compare ?? pickFunction<TValue>(descending);
 
             var i = 0;
             var j = sortItems.Length - 1;
@@ -138,7 +138,7 @@ namespace analyticsLibrary.Algorithms
 
             return sortItems;
 
-            void quickSort(k[] sorting, int si, int sj)
+            void quickSort(TValue[] sorting, int si, int sj)
             {
                 if (si < sj)
                 {
@@ -148,9 +148,9 @@ namespace analyticsLibrary.Algorithms
                 }
             }
 
-            int partition(k[] arr, int si, int sj)
+            int partition(TValue[] arr, int si, int sj)
             {
-                k pivot = arr[sj];
+                TValue pivot = arr[sj];
                 int small = si - 1;
 
                 for (int l = si; l < sj; l++)
@@ -166,9 +166,9 @@ namespace analyticsLibrary.Algorithms
                 return small + 1;
             }
 
-            void swap(k[] arr, int l, int ss)
+            void swap(TValue[] arr, int l, int ss)
             {
-                k temp;
+                TValue temp;
                 temp = arr[l];
                 arr[l] = arr[ss];
                 arr[ss] = temp;

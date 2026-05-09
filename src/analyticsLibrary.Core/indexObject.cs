@@ -2,21 +2,21 @@
 
 namespace analyticsLibrary.Core
 {
-    public class indexObject<v> : indexObject<int, v>
+    public class indexObject<TValue> : indexObject<int, TValue>
     {
-        public indexObject(int index, v value)
+        public indexObject(int index, TValue value)
             : base(i => (int)i, index, value) { }
     }
 
-    public class indexObject<t, v>
+    public class indexObject<TIndex, TValue>
     {
-        public indexObject(Func<int, t> indexCreate, int index, v value)
+        public indexObject(Func<int, TIndex> indexCreate, int index, TValue value)
         {
             this.index = indexCreate(index);
             this.value = value;
         }
 
-        public t index { get; private set; }
-        public v value { get; set; }
+        public TIndex index { get; private set; }
+        public TValue value { get; set; }
     }
 }
