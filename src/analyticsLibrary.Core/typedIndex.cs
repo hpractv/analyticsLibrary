@@ -6,12 +6,12 @@ using System.Linq;
 
 namespace analyticsLibrary.Core
 {
-    public class typedIndex<k, v>
+    public class typedIndex<TKey, TValue>
     {
-        private k[] _index = new k[0];
-        private v[] _values = new v[0];
+        private TKey[] _index = new TKey[0];
+        private TValue[] _values = new TValue[0];
 
-        public typedIndex(k[] keys, v[] values)
+        public typedIndex(TKey[] keys, TValue[] values)
         {
             var keysLength = keys.Length;
             var valuesLength = values.Length;
@@ -21,7 +21,7 @@ namespace analyticsLibrary.Core
             Array.Sort(tempIndex, (a, b) => string.Compare(a.value.ToString(), b.value.ToString()));
 
             _index = tempIndex.Select(ki => ki.value).ToArray();
-            _values = new v[keysLength];
+            _values = new TValue[keysLength];
             
             for (int i = 0; i < keysLength; i++)
             {
@@ -30,9 +30,9 @@ namespace analyticsLibrary.Core
             }
         }
 
-        public bool containsKey(k key) => containsKey(key, out int index);
+        public bool containsKey(TKey key) => containsKey(key, out int index);
 
-        public bool containsKey(k key, out int index)
+        public bool containsKey(TKey key, out int index)
         {
             if (key != null)
                 index = Array.BinarySearch(_index, key);
@@ -42,16 +42,16 @@ namespace analyticsLibrary.Core
             return index >= 0;
         }
 
-        public v this[k key]
+        public TValue this[TKey key]
         {
             get
             {
-                if (!containsKey(key, out int index)) return default(v); // throw new ApplicationException("Key does not exist.");
+                if (!containsKey(key, out int index)) return default(TValue); // throw new ApplicationException("Key does not exist.");
                 return _values[index];
             }
         }
 
-        public v this[int index]
+        public TValue this[int index]
         {
             get => _values[index];
         }

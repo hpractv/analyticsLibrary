@@ -103,24 +103,24 @@ namespace analyticsLibrary.Core
         /// <summary>
         /// Converts a string array into an array of numeric types
         /// </summary>
-        /// <typeparam name="t">Type to parse to</typeparam>
+        /// <typeparam name="TValue">Type to parse to</typeparam>
         /// <param name="values">Array of string values that can be cast to the desired type</param>
         /// <returns>Array of numeric parsed type</returns>
         /// <remarks>If the string array is parsed to int values, any portion beyond the decimal point will be truncated.</remarks>
-        public static t[] toNumericArray<t>(this string[] values)
+        public static TValue[] toNumericArray<TValue>(this string[] values)
         {
-            var type = typeof(t);
+            var type = typeof(TValue);
             var parse = type.GetMethod("Parse", new Type[] { typeof(string) });
 
             if (parse == null) throw new ApplicationException("Parse method not supported.");
 
-            var ts = new t[values.Length];
+            var ts = new TValue[values.Length];
             for (int i = 0; i < values.Length; i++)
             {
                 var parseValue = type.Name.ToLower().StartsWith("int") ?
                     values[i].Split('.')[0] : values[i];
 
-                ts[i] = (t)parse.Invoke(parse, new object[] { parseValue });
+                ts[i] = (TValue)parse.Invoke(parse, new object[] { parseValue });
             }
 
             return ts;

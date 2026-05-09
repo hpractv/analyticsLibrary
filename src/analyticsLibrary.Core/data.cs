@@ -3,34 +3,34 @@ using System.Linq;
 
 namespace analyticsLibrary.Core
 {
-    public class data<t>
+    public class data<TValue>
     {
         internal IKeyIndex parent { get; private set; }
 
-        public data(IKeyIndex parent, t[] values)
+        public data(IKeyIndex parent, TValue[] values)
         {
             this.parent = parent;
             this.values = values;
         }
 
-        public t[] values { get; private set; }
+        public TValue[] values { get; private set; }
 
-        public t this[int index]
+        public TValue this[int index]
         {
             get
             {
-                return (t)values[index];
+                return (TValue)values[index];
             }
         }
 
-        public t this[string key]
+        public TValue this[string key]
         {
             get
             {
                 if (parent.keyExists(key, out int index))
                 {
                     var v = values[index];
-                    return (t)v;
+                    return (TValue)v;
                 }
                 else
                     throw new ApplicationException($"This key does not exists: {key}");
@@ -39,7 +39,7 @@ namespace analyticsLibrary.Core
 
         public bool isNull(string key) => parent.keyExists(key, out var index);
 
-        public t[] selectFields(params string[] names)
+        public TValue[] selectFields(params string[] names)
         {
             var indexes = names.Select(n =>
             {

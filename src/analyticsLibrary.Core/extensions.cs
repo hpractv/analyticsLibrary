@@ -97,33 +97,33 @@ namespace analyticsLibrary.Core
             return DateTime.Parse(value);
         }
 
-        public static void forEach<t>(this IEnumerable<t> values, Action<t> forEachMethod)
+        public static void forEach<TValue>(this IEnumerable<TValue> values, Action<TValue> forEachMethod)
         {
             values.ToList().ForEach(value => forEachMethod(value));
         }
 
-        public static int binarySearch<t>(this t[] values, t value)
+        public static int binarySearch<TValue>(this TValue[] values, TValue value)
         {
             return Array.BinarySearch(values, value);
         }
 
-        public static indexObject<v>[] index<v>(this IEnumerable<v> values)
-        //=> values.index<int, v>(i => i).Cast<indexObject<v>>().ToArray();
+        public static indexObject<TValue>[] index<TValue>(this IEnumerable<TValue> values)
+        //=> values.index<int, TValue>(i => i).Cast<indexObject<TValue>>().ToArray();
         {
             var index = 0;
 
             return values
-                .Select(value => new indexObject<v>(index++, value))
+                .Select(value => new indexObject<TValue>(index++, value))
                 .ToArray();
         }
 
 
-        public static indexObject<t, v>[] index<t, v>(this IEnumerable<v> values, Func<int, t> indexMethod)
+        public static indexObject<TIndex, TValue>[] index<TIndex, TValue>(this IEnumerable<TValue> values, Func<int, TIndex> indexMethod)
         {
             var index = 0;
 
             return values
-                .Select(value => new indexObject<t, v>(indexMethod, index++, value))
+                .Select(value => new indexObject<TIndex, TValue>(indexMethod, index++, value))
                 .ToArray();
         }
 
@@ -166,18 +166,18 @@ namespace analyticsLibrary.Core
             seconds = (time - (hours * 3600) - (minutes * 60));
         }
 
-        public static List<v> loop<t, v>(this IEnumerable<t> values, Func<t, IEnumerable<v>> loopMethod) => values.loop(1, loopMethod, null, false, true);
+        public static List<TResult> loop<TSource, TResult>(this IEnumerable<TSource> values, Func<TSource, IEnumerable<TResult>> loopMethod) => values.loop(1, loopMethod, null, false, true);
 
-        public static List<v> loop<t, v>(this IEnumerable<t> values, Func<t, IEnumerable<v>> loopMethod, bool displayStep) => values.loop(1, loopMethod, null, displayStep, true);
+        public static List<TResult> loop<TSource, TResult>(this IEnumerable<TSource> values, Func<TSource, IEnumerable<TResult>> loopMethod, bool displayStep) => values.loop(1, loopMethod, null, displayStep, true);
 
-        public static List<v> loop<t, v>(this IEnumerable<t> values, int step, Func<IEnumerable<t>, IEnumerable<v>> loopMethod) => loop<t, v>(values, step, loopMethod, false);
+        public static List<TResult> loop<TSource, TResult>(this IEnumerable<TSource> values, int step, Func<IEnumerable<TSource>, IEnumerable<TResult>> loopMethod) => loop<TSource, TResult>(values, step, loopMethod, false);
 
-        public static List<v> loop<t, v>(this IEnumerable<t> values, int step, Func<IEnumerable<t>, IEnumerable<v>> loopMethod, bool displayStep) => values.loop(step, null, loopMethod, displayStep, false);
+        public static List<TResult> loop<TSource, TResult>(this IEnumerable<TSource> values, int step, Func<IEnumerable<TSource>, IEnumerable<TResult>> loopMethod, bool displayStep) => values.loop(step, null, loopMethod, displayStep, false);
 
-        private static List<v> loop<t, v>(this IEnumerable<t> values, int step, Func<t, IEnumerable<v>> loopSingleMethod, Func<IEnumerable<t>, IEnumerable<v>> loopMultipleMethod, bool displayStep, bool single)
+        private static List<TResult> loop<TSource, TResult>(this IEnumerable<TSource> values, int step, Func<TSource, IEnumerable<TResult>> loopSingleMethod, Func<IEnumerable<TSource>, IEnumerable<TResult>> loopMultipleMethod, bool displayStep, bool single)
         {
             var start = DateTime.Now;
-            var returnValues = new List<v>();
+            var returnValues = new List<TResult>();
             var counter = 1;
             var count = values.Count();
             var ofCount = Math.Ceiling((double)count/(double)step);
@@ -219,11 +219,11 @@ namespace analyticsLibrary.Core
             return returnValues;
         }
 
-        public static List<v> loop<v>(this loopDateRange dates, Func<DateTime, DateTime, bool, IEnumerable<v>> loopMethod)
+        public static List<TResult> loop<TResult>(this loopDateRange dates, Func<DateTime, DateTime, bool, IEnumerable<TResult>> loopMethod)
         {
             var loopStart = dates.start;
             var loopEnd = DateTime.Now;
-            var output = new List<v>();
+            var output = new List<TResult>();
             var firstPass = true;
             while (dates.start < dates.end)
             {
@@ -292,10 +292,10 @@ namespace analyticsLibrary.Core
             }
         }
 
-        public static void batch<t>(this IEnumerable<t> values, int size, Action<IEnumerable<t>> process)
+        public static void batch<TValue>(this IEnumerable<TValue> values, int size, Action<IEnumerable<TValue>> process)
             => values.batch(size, process, false);
 
-        public static void batch<t>(this IEnumerable<t> values, int size, Action<IEnumerable<t>> process, bool showProgress)
+        public static void batch<TValue>(this IEnumerable<TValue> values, int size, Action<IEnumerable<TValue>> process, bool showProgress)
         {
             var batchCount = (int)Math.Ceiling((double)values.Count() / size);
             var start = DateTime.Now;
@@ -330,17 +330,17 @@ namespace analyticsLibrary.Core
             }
         }
 
-        public static string stringJoin<t>(this IEnumerable<t> values, char seperator)
+        public static string stringJoin<TValue>(this IEnumerable<TValue> values, char seperator)
         {
             return values.stringJoin(seperator.ToString());
         }
 
-        public static string stringJoin<t>(this IEnumerable<t> values, string seperator)
+        public static string stringJoin<TValue>(this IEnumerable<TValue> values, string seperator)
         {
             return string.Join(seperator, values);
         }
 
-        public static int indexOf<t>(this IEnumerable<t> values, t value)
+        public static int indexOf<TValue>(this IEnumerable<TValue> values, TValue value)
         {
             var index = -1;
             if (values != null & values.Count() > 0)
@@ -423,9 +423,9 @@ namespace analyticsLibrary.Core
             return buildClass(columns.Select(c => c.ColumnName), columns.Select(c => c.DataType), className);
         }
 
-        public static string buildClass<t>(this IEnumerable<t> values, string className) => values.buildClass(null, className);
+        public static string buildClass<TValue>(this IEnumerable<TValue> values, string className) => values.buildClass(null, className);
 
-        public static string buildClass<t>(this IEnumerable<t> values, IEnumerable<string> types, string className)
+        public static string buildClass<TValue>(this IEnumerable<TValue> values, IEnumerable<string> types, string className)
         {
             var typesA = types == null ? (string[])null : types.ToArray();
             return (@"public class " + className + @" {" + Environment.NewLine +
@@ -524,12 +524,12 @@ namespace analyticsLibrary.Core
         public const string decimalFormat = "###,###,###,##0.00";
         public const string moneyFormat = "$###,###,###,##0.00";
 
-        public static string toCountString<t>(this IEnumerable<t> values)
+        public static string toCountString<TValue>(this IEnumerable<TValue> values)
         {
             return values.Count().toCountString();
         }
 
-        public static string toCountString<t>(this IEnumerable<t> values, Predicate<t> filter)
+        public static string toCountString<TValue>(this IEnumerable<TValue> values, Predicate<TValue> filter)
         {
             return values.Count(v => filter(v)).toCountString();
         }
@@ -667,9 +667,9 @@ namespace analyticsLibrary.Core
             return returnValue;
         }
 
-        public static IEnumerable<t> appendSet<t>(this IEnumerable<t> a, IEnumerable<t> b)
+        public static IEnumerable<TValue> appendSet<TValue>(this IEnumerable<TValue> a, IEnumerable<TValue> b)
         {
-            var returnSet = new t[a.Count() + b.Count()];
+            var returnSet = new TValue[a.Count() + b.Count()];
             a.ToArray().CopyTo(returnSet, 0);
             b.ToArray().CopyTo(returnSet, a.Count());
             return returnSet;
@@ -696,12 +696,12 @@ namespace analyticsLibrary.Core
             return string.Format("{0}{1}", date, time);
         }
 
-        public static decimal perValue<t>(this IEnumerable<t> values, Predicate<t> sumFilter, Func<t, decimal> value)
+        public static decimal perValue<TValue>(this IEnumerable<TValue> values, Predicate<TValue> sumFilter, Func<TValue, decimal> value)
         {
             return values.perValue(sumFilter, sumFilter, value);
         }
 
-        public static decimal perValue<t>(this IEnumerable<t> values, Predicate<t> sumFilter, Predicate<t> perFilter, Func<t, decimal> value)
+        public static decimal perValue<TValue>(this IEnumerable<TValue> values, Predicate<TValue> sumFilter, Predicate<TValue> perFilter, Func<TValue, decimal> value)
         {
             if (values.Count(v => perFilter(v)) == 0)
                 return 0;
@@ -710,12 +710,12 @@ namespace analyticsLibrary.Core
                     (decimal)values.Count(v => perFilter(v));
         }
 
-        public static decimal percentage<t>(this IEnumerable<t> values, Predicate<t> filter)
+        public static decimal percentage<TValue>(this IEnumerable<TValue> values, Predicate<TValue> filter)
         {
             return (decimal)values.Count(v => filter(v)) / (decimal)values.Count();
         }
 
-        public static string percentageFormatted<t>(this IEnumerable<t> values, Predicate<t> filter)
+        public static string percentageFormatted<TValue>(this IEnumerable<TValue> values, Predicate<TValue> filter)
         {
             return values.percentage(filter).toPercentString();
         }
@@ -786,14 +786,14 @@ namespace analyticsLibrary.Core
             return values[columns.stringIndex(value)];
         }
 
-        public static v valueOrNull<t, v>(this Dictionary<t, v> values, t key)
+        public static TValue valueOrNull<TKey, TValue>(this Dictionary<TKey, TValue> values, TKey key)
         {
-            return (v)(values.ContainsKey(key) ? values[key] : (object)null);
+            return (TValue)(values.ContainsKey(key) ? values[key] : (object)null);
         }
 
-        public static IEnumerable<v> valueOrNull<t, v>(this Lookup<t, v> values, t key)
+        public static IEnumerable<TValue> valueOrNull<TKey, TValue>(this Lookup<TKey, TValue> values, TKey key)
         {
-            return (values.Contains(key) ? values[key] : (IEnumerable<v>)null);
+            return (values.Contains(key) ? values[key] : (IEnumerable<TValue>)null);
         }
 
         #region day calculations
@@ -861,7 +861,7 @@ namespace analyticsLibrary.Core
         
         #endregion day calculations
 
-        public static bool notNullHasValue<t>(this IEnumerable<t> values)
+        public static bool notNullHasValue<TValue>(this IEnumerable<TValue> values)
         {
             return values != null && values.Count() > 0;
         }
@@ -876,12 +876,12 @@ namespace analyticsLibrary.Core
             return attribute == null ? value.ToString() : attribute.Description;
         }
 
-        public static t enumValueOf<t>(this string value)
+        public static TEnum enumValueOf<TEnum>(this string value)
         {
-            var enumValues = (t[])Enum.GetValues(typeof(t));
+            var enumValues = (TEnum[])Enum.GetValues(typeof(TEnum));
             foreach (var enumValue in enumValues)
             {
-                var description = ((Enum)Enum.Parse(typeof(t), enumValue.ToString()))
+                var description = ((Enum)Enum.Parse(typeof(TEnum), enumValue.ToString()))
                     .description()
                     .ToLower();
 
