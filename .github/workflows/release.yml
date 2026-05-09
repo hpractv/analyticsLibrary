@@ -12,10 +12,118 @@ on:
         default: '2.0.0'
 
 jobs:
+  changes:
+    name: Detect package-impacting changes
+    runs-on: ubuntu-latest
+    outputs:
+      core_changed: ${{ steps.flags.outputs.core_changed }}
+      algorithms_changed: ${{ steps.flags.outputs.algorithms_changed }}
+      statistics_changed: ${{ steps.flags.outputs.statistics_changed }}
+      excel_changed: ${{ steps.flags.outputs.excel_changed }}
+      access_changed: ${{ steps.flags.outputs.access_changed }}
+      hadoop_changed: ${{ steps.flags.outputs.hadoop_changed }}
+      root_changed: ${{ steps.flags.outputs.root_changed }}
+      any_changed: ${{ steps.flags.outputs.any_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve comparison base
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE="${{ github.event.before }}"
+            if [ -n "$BASE" ] && [ "$BASE" != "0000000000000000000000000000000000000000" ]; then
+              echo "base_ref=$BASE" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          fi
+
+          PREV_TAG="$(git tag --sort=-creatordate | sed -n '2p')"
+          if [ -z "$PREV_TAG" ]; then
+            BASE="$(git rev-list --max-parents=0 HEAD | sed -n '1p')"
+          else
+            BASE="$(git rev-list -n 1 "$PREV_TAG")"
+          fi
+          echo "base_ref=$BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          base: ${{ steps.base.outputs.base_ref }}
+          ref: ${{ github.sha }}
+          filters: |
+            workflows:
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/release.yml'
+            core:
+              - 'src/analyticsLibrary.Core/**'
+            algorithms:
+              - 'src/analyticsLibrary.Algorithms/**'
+            statistics:
+              - 'src/analyticsLibrary.Statistics/**'
+            excel:
+              - 'src/analyticsLibrary.Excel/**'
+            access:
+              - 'src/analyticsLibrary.Access/**'
+            hadoop:
+              - 'src/analyticsLibrary.Hadoop/**'
+            root:
+              - 'src/analyticsLibrary/**'
+
+      - name: Compute effective package flags
+        id: flags
+        run: |
+          WORKFLOWS_CHANGED='${{ steps.filter.outputs.workflows }}'
+          set_flag() {
+            local name="$1"
+            local raw="$2"
+            if [ "$raw" = "true" ] || [ "$WORKFLOWS_CHANGED" = "true" ]; then
+              echo "${name}=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "${name}=false" >> "$GITHUB_OUTPUT"
+            fi
+          }
+
+          set_flag core_changed '${{ steps.filter.outputs.core }}'
+          set_flag algorithms_changed '${{ steps.filter.outputs.algorithms }}'
+          set_flag statistics_changed '${{ steps.filter.outputs.statistics }}'
+          set_flag excel_changed '${{ steps.filter.outputs.excel }}'
+          set_flag access_changed '${{ steps.filter.outputs.access }}'
+          set_flag hadoop_changed '${{ steps.filter.outputs.hadoop }}'
+          set_flag root_changed '${{ steps.filter.outputs.root }}'
+
+          if [ '${{ steps.filter.outputs.core }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.algorithms }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.statistics }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.excel }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.access }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.hadoop }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.root }}' = "true" ] || \
+             [ "$WORKFLOWS_CHANGED" = "true" ]; then
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  no-package-changes:
+    name: No package-impacting changes
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.any_changed != 'true'
+    steps:
+      - name: Skip message
+        run: echo "No package-impacting changes detected since the release baseline; skipping NuGet release."
+
   release:
     name: Build, Test, Pack, and Deploy
     runs-on: ubuntu-latest
     environment: nuget-release
+    needs: changes
+    if: needs.changes.outputs.any_changed == 'true'
 
     steps:
       - name: Checkout
@@ -48,29 +156,75 @@ jobs:
         run: dotnet test -c Release --no-build --verbosity normal
 
       - name: Pack
-        run: dotnet pack -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+        run: |
+          mkdir -p ./artifacts
+          PACKED=0
+
+          if [ "${{ needs.changes.outputs.core_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary.Core/analyticsLibrary.Core.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.algorithms_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.statistics_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.excel_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.access_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary.Access/analyticsLibrary.Access.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.hadoop_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.root_changed }}" = "true" ]; then
+            dotnet pack src/analyticsLibrary/analyticsLibrary.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            PACKED=$((PACKED+1))
+          fi
+
+          if [ "$PACKED" -eq 0 ]; then
+            echo "No package projects selected for packing."
+            exit 1
+          fi
 
       - name: Inspect packages
         run: |
           echo "Produced packages:"
           ls -la ./artifacts/*.nupkg
-          EXPECTED_PACKAGES=(
-            "analyticsLibrary.Core"
-            "analyticsLibrary.Algorithms"
-            "analyticsLibrary.Statistics"
-            "analyticsLibrary.Excel"
-            "analyticsLibrary.Access"
-            "analyticsLibrary.Hadoop"
-            "analyticsLibrary"
-          )
+          EXPECTED=0
           MISSING=0
-          for pkg in "${EXPECTED_PACKAGES[@]}"; do
-            if ! ls ./artifacts/${pkg}.*.nupkg 1>/dev/null 2>&1; then
-              echo "ERROR: Expected package not found: ${pkg}"
-              MISSING=$((MISSING+1))
+          verify_pkg() {
+            local should_pack="$1"
+            local package_name="$2"
+            if [ "$should_pack" = "true" ]; then
+              EXPECTED=$((EXPECTED+1))
+              if ! ls ./artifacts/${package_name}.*.nupkg 1>/dev/null 2>&1; then
+                echo "ERROR: Expected package not found: ${package_name}"
+                MISSING=$((MISSING+1))
+              fi
             fi
-          done
-          if [ $MISSING -gt 0 ]; then
+          }
+
+          verify_pkg "${{ needs.changes.outputs.core_changed }}" "analyticsLibrary.Core"
+          verify_pkg "${{ needs.changes.outputs.algorithms_changed }}" "analyticsLibrary.Algorithms"
+          verify_pkg "${{ needs.changes.outputs.statistics_changed }}" "analyticsLibrary.Statistics"
+          verify_pkg "${{ needs.changes.outputs.excel_changed }}" "analyticsLibrary.Excel"
+          verify_pkg "${{ needs.changes.outputs.access_changed }}" "analyticsLibrary.Access"
+          verify_pkg "${{ needs.changes.outputs.hadoop_changed }}" "analyticsLibrary.Hadoop"
+          verify_pkg "${{ needs.changes.outputs.root_changed }}" "analyticsLibrary"
+
+          if [ "$EXPECTED" -eq 0 ]; then
+            echo "Aborting: No packages were expected after change detection."
+            exit 1
+          fi
+          if [ "$MISSING" -gt 0 ]; then
             echo "Aborting: $MISSING expected package(s) are missing."
             exit 1
           fi
