@@ -180,7 +180,7 @@ All methods are extension methods on `double[]` or `IEnumerable<double>`:
 - `analytics` — `compress()`, `titleCase()`, `wordReplace()` string extension methods.
 - `extensions.fromSasEpochDate()` — parses a SAS datetime string in `ddMMMyyyy:hh:mm:ss.fff` format.
 
-### Excel (`analyticsLibrary.Excel`, Windows)
+### Excel (`analyticsLibrary.Excel`)
 
 - Read and write Excel workbooks and individual worksheets as `DataSet`/`DataTable`.
 - Target individual cells in an existing workbook.

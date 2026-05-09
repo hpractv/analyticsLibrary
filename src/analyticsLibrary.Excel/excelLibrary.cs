@@ -74,11 +74,22 @@ namespace analyticsLibrary.Excel
         public static DataTable getSheetData(string fileName, int sheetNumber, int? skipRows = null)
         {
             var data = getSheetData(fileName);
-            if (data.Tables.Count < sheetNumber)
+            if (data.Tables.Count <= sheetNumber)
             {
                 throw new ApplicationException("Sheet number does not exist for this dataset.");
             }
-            return data.Tables[sheetNumber];
+            var returnTable = data.Tables[sheetNumber];
+            if (skipRows != null && skipRows > 0)
+            {
+                var skip = returnTable.Rows.Cast<DataRow>()
+                        .Take((int)skipRows)
+                        .ToArray();
+                var header = skip.Last();
+                for (var i = 0; i < returnTable.Columns.Count; i++)
+                    returnTable.Columns[i].ColumnName = header[i].ToString();
+                foreach (var row in skip) returnTable.Rows.Remove(row);
+            }
+            return returnTable;
         }
         public static DataTable getSheetData(string fileName, string sheetName, int? skipRows = null)
         {
@@ -88,7 +99,7 @@ namespace analyticsLibrary.Excel
                 throw new ApplicationException("Sheet name does not exist for this dataset.");
             }
             var returnTable = data.Tables[sheetName];
-            if (skipRows != null)
+            if (skipRows != null && skipRows > 0)
             {
                 var skip = returnTable.Rows.Cast<DataRow>()
                         .Take((int)skipRows)
@@ -558,8 +569,8 @@ namespace analyticsLibrary.Excel
         private static void AssertXlsxExtension(string fileName)
         {
             var ext = Path.GetExtension(fileName)?.ToLowerInvariant();
-            if (ext == ".xlsb")
-                throw new NotSupportedException("Writing .xlsb is not supported. Use .xlsx instead.");
+            if (ext != ".xlsx")
+                throw new NotSupportedException($"Extension '{ext}' is not supported for writing. Use .xlsx instead.");
         }
 
         /// <summary>

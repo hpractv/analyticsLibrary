@@ -161,31 +161,31 @@ jobs:
           PACKED=0
 
           if [ "${{ needs.changes.outputs.core_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary.Core/analyticsLibrary.Core.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary.Core/analyticsLibrary.Core.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
           if [ "${{ needs.changes.outputs.algorithms_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
           if [ "${{ needs.changes.outputs.statistics_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
           if [ "${{ needs.changes.outputs.excel_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
           if [ "${{ needs.changes.outputs.access_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary.Access/analyticsLibrary.Access.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary.Access/analyticsLibrary.Access.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
           if [ "${{ needs.changes.outputs.hadoop_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
           if [ "${{ needs.changes.outputs.root_changed }}" = "true" ]; then
-            dotnet pack src/analyticsLibrary/analyticsLibrary.csproj -c Release --no-build -p:Version=${{ steps.version.outputs.VERSION }} -o ./artifacts
+            dotnet pack src/analyticsLibrary/analyticsLibrary.csproj -c Release --no-build -o ./artifacts
             PACKED=$((PACKED+1))
           fi
 
@@ -228,7 +228,7 @@ jobs:
             echo "Aborting: $MISSING expected package(s) are missing."
             exit 1
           fi
-          echo "All ${{ steps.version.outputs.VERSION }} packages found and ready for deployment."
+          echo "All expected packages found and ready for deployment."
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@v4

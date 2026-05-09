@@ -481,6 +481,69 @@ namespace analyticsLibrary.Excel.Tests
         }
 
         [Fact]
+        public void WriteSheetDataXlsx_Xls_ThrowsNotSupported()
+        {
+            Assert.Throws<NotSupportedException>(() =>
+                excelLibrary.writeSheetDataXlsx("/tmp/test.xls", "Sheet1", new object[,] { { "x" } }));
+        }
+
+        [Fact]
+        public void GetSheetData_ByIndex_OutOfRange_ThrowsApplicationException()
+        {
+            var wb = new XSSFWorkbook();
+            wb.CreateSheet("Only");
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp)) wb.Write(fs);
+                Assert.Throws<ApplicationException>(() => excelLibrary.getSheetData(temp, 1));
+            }
+            finally { try { File.Delete(temp); } catch { } }
+        }
+
+        [Fact]
+        public void GetSheetData_ByIndex_SkipRows_RenamesHeaderAndRemovesRows()
+        {
+            var wb = new XSSFWorkbook();
+            var sheet = wb.CreateSheet("Data");
+            // Row 0 becomes column header (NPOI BuildDataTableFromNpoiSheet behavior).
+            // Row 1 ("Header") and Row 2 ("Value") are data rows.
+            var r0 = sheet.CreateRow(0); r0.CreateCell(0).SetCellValue("ColA");
+            var r1 = sheet.CreateRow(1); r1.CreateCell(0).SetCellValue("Header");
+            var r2 = sheet.CreateRow(2); r2.CreateCell(0).SetCellValue("Value");
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp)) wb.Write(fs);
+                // skipRows=1: skip first data row ("Header") and use it as the column name.
+                var dt = excelLibrary.getSheetData(temp, 0, 1);
+                Assert.Equal("Header", dt.Columns[0].ColumnName);
+                Assert.Equal(1, dt.Rows.Count);
+                Assert.Equal("Value", dt.Rows[0][0].ToString());
+            }
+            finally { try { File.Delete(temp); } catch { } }
+        }
+
+        [Fact]
+        public void GetSheetData_ByName_SkipRowsZero_ReturnsUnmodifiedTable()
+        {
+            var wb = new XSSFWorkbook();
+            var sheet = wb.CreateSheet("Data");
+            // Row 0 becomes column header; Row 1 is the single data row.
+            var r0 = sheet.CreateRow(0); r0.CreateCell(0).SetCellValue("Header");
+            var r1 = sheet.CreateRow(1); r1.CreateCell(0).SetCellValue("Value");
+            var temp = Path.GetTempFileName() + ".xlsx";
+            try
+            {
+                using (var fs = File.Create(temp)) wb.Write(fs);
+                // skipRows=0 must not throw and must return the table unmodified.
+                var dt = excelLibrary.getSheetData(temp, "Data", 0);
+                Assert.Equal(1, dt.Rows.Count);
+            }
+            finally { try { File.Delete(temp); } catch { } }
+        }
+
+        [Fact]
         public void GetWorkbookSheetDatasets_XlsbPath_ReadsXlsxStreamViaAutoDetect()
         {
             // ExcelDataReader.CreateReader() auto-detects format from file signature regardless
