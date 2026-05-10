@@ -1,0 +1,226 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  changes:
+    name: Detect package-impacting changes
+    runs-on: ubuntu-latest
+    outputs:
+      core_changed: ${{ steps.flags.outputs.core_changed }}
+      algorithms_changed: ${{ steps.flags.outputs.algorithms_changed }}
+      statistics_changed: ${{ steps.flags.outputs.statistics_changed }}
+      excel_changed: ${{ steps.flags.outputs.excel_changed }}
+      access_changed: ${{ steps.flags.outputs.access_changed }}
+      hadoop_changed: ${{ steps.flags.outputs.hadoop_changed }}
+      root_changed: ${{ steps.flags.outputs.root_changed }}
+      any_changed: ${{ steps.flags.outputs.any_changed }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed paths
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            workflows:
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/release.yml'
+            core:
+              - 'src/analyticsLibrary.Core/**'
+            algorithms:
+              - 'src/analyticsLibrary.Algorithms/**'
+            statistics:
+              - 'src/analyticsLibrary.Statistics/**'
+            excel:
+              - 'src/analyticsLibrary.Excel/**'
+            access:
+              - 'src/analyticsLibrary.Access/**'
+            hadoop:
+              - 'src/analyticsLibrary.Hadoop/**'
+            root:
+              - 'src/analyticsLibrary/**'
+
+      - name: Compute effective package flags
+        id: flags
+        run: |
+          WORKFLOWS_CHANGED='${{ steps.filter.outputs.workflows }}'
+          set_flag() {
+            local name="$1"
+            local raw="$2"
+            if [ "$raw" = "true" ] || [ "$WORKFLOWS_CHANGED" = "true" ]; then
+              echo "${name}=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "${name}=false" >> "$GITHUB_OUTPUT"
+            fi
+          }
+
+          set_flag core_changed '${{ steps.filter.outputs.core }}'
+          set_flag algorithms_changed '${{ steps.filter.outputs.algorithms }}'
+          set_flag statistics_changed '${{ steps.filter.outputs.statistics }}'
+          set_flag excel_changed '${{ steps.filter.outputs.excel }}'
+          set_flag access_changed '${{ steps.filter.outputs.access }}'
+          set_flag hadoop_changed '${{ steps.filter.outputs.hadoop }}'
+          set_flag root_changed '${{ steps.filter.outputs.root }}'
+
+          if [ '${{ steps.filter.outputs.core }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.algorithms }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.statistics }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.excel }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.access }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.hadoop }}' = "true" ] || \
+             [ '${{ steps.filter.outputs.root }}' = "true" ] || \
+             [ "$WORKFLOWS_CHANGED" = "true" ]; then
+            echo "any_changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "any_changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  no-package-changes:
+    name: No package-impacting changes
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.any_changed != 'true'
+    steps:
+      - name: Skip message
+        run: echo "No package-impacting changes detected; skipping NuGet build/pack/publish."
+
+  build-test-pack:
+    name: Build, Test, and Pack
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.any_changed == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore
+
+      - name: Test
+        run: dotnet test -c Release --no-build --verbosity normal
+
+      - name: Pack
+        run: |
+          mkdir -p ./artifacts
+          PACKED=0
+          IS_PR="${{ github.event_name == 'pull_request' }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          RUN_NUMBER="${{ github.run_number }}"
+
+          pack_pkg() {
+            local csproj="$1"
+            local base_ver
+            base_ver=$(grep -oPm1 '<Version>\K[^<]+' "$csproj")
+            if [ "$IS_PR" = "true" ] && [ -n "$PR_NUMBER" ]; then
+              local ver="${base_ver}-beta.pr-${PR_NUMBER}.${RUN_NUMBER}"
+            else
+              local ver="$base_ver"
+            fi
+            dotnet pack "$csproj" -c Release --no-build -p:Version="$ver" -o ./artifacts
+          }
+
+          if [ "${{ needs.changes.outputs.core_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary.Core/analyticsLibrary.Core.csproj
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.algorithms_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.statistics_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.excel_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.access_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary.Access/analyticsLibrary.Access.csproj
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.hadoop_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj
+            PACKED=$((PACKED+1))
+          fi
+          if [ "${{ needs.changes.outputs.root_changed }}" = "true" ]; then
+            pack_pkg src/analyticsLibrary/analyticsLibrary.csproj
+            PACKED=$((PACKED+1))
+          fi
+
+          if [ "$PACKED" -eq 0 ]; then
+            echo "No package projects selected for packing."
+            exit 1
+          fi
+
+      - name: Inspect packages
+        run: |
+          echo "Produced packages:"
+          ls -la ./artifacts/*.nupkg
+          EXPECTED=0
+          verify_pkg() {
+            local should_pack="$1"
+            local package_name="$2"
+            if [ "$should_pack" = "true" ]; then
+              EXPECTED=$((EXPECTED+1))
+              if ! ls ./artifacts/${package_name}.*.nupkg 1>/dev/null 2>&1; then
+                echo "ERROR: Expected package not found: ${package_name}"
+                exit 1
+              fi
+            fi
+          }
+
+          verify_pkg "${{ needs.changes.outputs.core_changed }}" "analyticsLibrary.Core"
+          verify_pkg "${{ needs.changes.outputs.algorithms_changed }}" "analyticsLibrary.Algorithms"
+          verify_pkg "${{ needs.changes.outputs.statistics_changed }}" "analyticsLibrary.Statistics"
+          verify_pkg "${{ needs.changes.outputs.excel_changed }}" "analyticsLibrary.Excel"
+          verify_pkg "${{ needs.changes.outputs.access_changed }}" "analyticsLibrary.Access"
+          verify_pkg "${{ needs.changes.outputs.hadoop_changed }}" "analyticsLibrary.Hadoop"
+          verify_pkg "${{ needs.changes.outputs.root_changed }}" "analyticsLibrary"
+
+          if [ "$EXPECTED" -eq 0 ]; then
+            echo "ERROR: No packages were expected after change detection."
+            exit 1
+          fi
+          echo "All expected packages found."
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages-${{ github.run_id }}
+          path: ./artifacts/*.nupkg
+          retention-days: 30
+
+      - name: Publish beta packages
+        if: >
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NUGET_API_KEY is not set; skipping beta package publish."
+            exit 0
+          fi
+
+          dotnet nuget push ./artifacts/*.nupkg \
+            --api-key "$NUGET_API_KEY" \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

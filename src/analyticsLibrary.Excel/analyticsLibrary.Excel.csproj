@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Version>3.0.1</Version>
+    <Authors>hpractv</Authors>
+    <Copyright>Copyright (c) hpractv</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/hpractv/analyticsLibrary</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/hpractv/analyticsLibrary</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>analyticsLibrary.Excel</PackageId>
+    <Description>Excel file read/write (.xlsx/.xls/.xlsb) for the analyticsLibrary family. Uses NPOI (Apache-2.0) for .xlsx/.xls reading and writing, and ExcelDataReader (MIT) for .xlsb reading. No commercial license required. Writing .xlsb is not supported.</Description>
+    <PackageTags>analytics;excel;npoi;exceldatareader;spreadsheet;xlsx;xls;xlsb</PackageTags>
+    <PackageReleaseNotes>3.0.1: Pinned patched versions of NPOI transitive dependencies to address security advisories (System.Security.Cryptography.Xml 8.0.3 fixes GHSA-37gx-xxp4-5rgx and GHSA-w3x6-4m5h-cxqf; SixLabors.ImageSharp 2.1.11 fixes GHSA-rxmq-m78w-7wmc). 3.0.0: Removed EPPlus (PolyForm NonCommercial) and System.Data.OleDb. Write APIs ported to NPOI (Apache-2.0). Read APIs use NPOI + ExcelDataReader (MIT). Breaking: removed ExcelWorksheet-based public API surface (getSheet, numberFormatRow/Column, Action&lt;ExcelWorksheet&gt; overloads). See README for migration. 2.0.0: Remodeled from the monolithic analyticsLibrary package. Targets net8.0.</PackageReleaseNotes>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ExcelDataReader" />
+    <PackageReference Include="ExcelDataReader.DataSet" />
+    <PackageReference Include="NPOI" />
+    <!-- Direct refs to pin patched versions of NPOI transitives (security advisories) -->
+    <PackageReference Include="System.Security.Cryptography.Xml" />
+    <PackageReference Include="SixLabors.ImageSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\analyticsLibrary.Core\analyticsLibrary.Core.csproj" />
+  </ItemGroup>
+</Project>
