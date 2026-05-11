@@ -4,7 +4,7 @@ using analyticsLibrary.ReleaseTooling;
 
 namespace analyticsLibrary.ReleaseTooling.Tests;
 
-public class NuGetFlatContainerIntegrationTests
+public class NuGetFlatContainerTests
 {
     [Fact]
     public async Task Flat_container_index_for_core_has_versions_array()
