@@ -10,7 +10,7 @@ using static analyticsLibrary.Core.loopDateRange;
 
 namespace analyticsLibrary.Core
 {
-    public static class extensions
+    public static class Extensions
     {
         public static string stringOrNull(this object value, int length)
         {

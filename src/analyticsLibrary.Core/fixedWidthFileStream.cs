@@ -101,22 +101,22 @@ namespace analyticsLibrary.Core
 
         public int recordCount { get; private set; }
 
-        public data<string> nextRecord
+        public Data<string> nextRecord
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (!endOfFile)
                 {
-                    var record = new data<string>(this, _stream.ReadLine().splitFromPositions(_positions));
+                    var record = new Data<string>(this, _stream.ReadLine().splitFromPositions(_positions));
 
                     if (recordCount++ == 0 && _hasHeader)
-                        record = new data<string>(this, _stream.ReadLine().splitFromPositions(_positions));
+                        record = new Data<string>(this, _stream.ReadLine().splitFromPositions(_positions));
 
                     return record;
                 }
 
-                return default(data<string>);
+                return default(Data<string>);
             }
         }
 

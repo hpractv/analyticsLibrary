@@ -1,6 +1,6 @@
 ﻿namespace analyticsLibrary.Core
 {
-    public class login
+    public class Login
     {
         public string dsn { get; set; }
         public int port { get; set; }

@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 
 namespace analyticsLibrary.Core
 {
-    public static class analytics
+    public static class Analytics
     {
         public static string compress(this string value, string compress)
             => Regex.Replace(value, string.Format("([{0}]+)", compress), compress);

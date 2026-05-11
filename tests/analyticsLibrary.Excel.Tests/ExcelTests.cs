@@ -64,7 +64,7 @@ namespace analyticsLibrary.Excel.Tests
             row2["Other"] = "x";
             dt2.Rows.Add(row2);
 
-            Assert.Throws<extensions.columnNotFoundException>(() => dt2.Rows[0].rowValue<RowModel, string>("ColA"));
+            Assert.Throws<ColumnNotFoundException>(() => dt2.Rows[0].rowValue<RowModel, string>("ColA"));
         }
 
         [Fact]

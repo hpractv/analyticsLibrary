@@ -70,10 +70,10 @@ namespace analyticsLibrary.Hadoop
             return results.Rows.Cast<DataRow>();
         }
 
-        public IEnumerable<table> tablesByName(string tableName = null)
+        public IEnumerable<Table> tablesByName(string tableName = null)
         {
             return this.execute("SHOW TABLES")
-                .Select(r => new table()
+                .Select(r => new Table()
                 {
                     schema = this.schema,
                     name = r.containsColumn("tab_name") ? r.Field<string>("tab_name") : r.Field<string>("name"),
@@ -82,7 +82,7 @@ namespace analyticsLibrary.Hadoop
                     string.IsNullOrWhiteSpace(tableName) ||
                     (!string.IsNullOrWhiteSpace(tableName) && t.name.ToLower().Contains(tableName)));
         }
-        public IEnumerable<column> columnsByTable(string tableName)
+        public IEnumerable<Column> columnsByTable(string tableName)
         {
             var typeRegEx = @"(?<type>[A-z\d_]+>?)(\((?<length>[\d]+?)\))*";
             return execute($"describe {tableName}")
@@ -91,7 +91,7 @@ namespace analyticsLibrary.Hadoop
                     var matches = Regex.Match(
                         c.containsColumn("data_type") ? c.Field<string>("data_type") : c.Field<string>("type"),
                         typeRegEx, RegexOptions.IgnoreCase);
-                    return new column()
+                    return new Column()
                     {
                         parentTable = tableName,
                         name = c.containsColumn("col_name") ? c.Field<string>("col_name") : c.Field<string>("name"),

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace analyticsLibrary.Algorithms
 {
-    public static class sorting
+    public static class Sorting
     {
         private static bool stringLess(object value1, object value2) => string.Compare(value1.ToString(), value2.ToString()) <= 0;
 

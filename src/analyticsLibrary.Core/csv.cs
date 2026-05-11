@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace analyticsLibrary.Core
 {
-    public class csv : IKeyIndex
+    public class Csv : IKeyIndex
     {
         private string _file { get; set; }
         private char _delimeter = ',';
@@ -40,19 +40,19 @@ namespace analyticsLibrary.Core
 
         private bool _hasHeader;
 
-        public csv(string file) :
+        public Csv(string file) :
             this(file, ',', true)
         { }
 
-        public csv(string file, char delimiter) :
+        public Csv(string file, char delimiter) :
             this(file, delimiter, true)
         { }
 
-        public csv(string file, bool hasHeader = true) :
+        public Csv(string file, bool hasHeader = true) :
             this(file, ',', hasHeader)
         { }
 
-        public csv(string file, char delimeter, bool hasHeader = true)
+        public Csv(string file, char delimeter, bool hasHeader = true)
         {
             this._delimeter = delimeter;
             this._file = file;
@@ -126,22 +126,22 @@ namespace analyticsLibrary.Core
             return false;
         }
 
-        private List<data<string>> _data;
+        private List<Data<string>> _data;
 
-        public IEnumerable<data<string>> data
+        public IEnumerable<Data<string>> data
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (_data == null)
                 {
-                    _data = new List<data<string>>();
+                    _data = new List<Data<string>>();
 
                     var stream = new StreamReader(this._file);
                     var addHeader = _hasHeader;
                     while (stream.Peek() > -1)
                     {
-                        var record = new data<string>(this, stream.ReadLine().fromCsv(_delimeter));
+                        var record = new Data<string>(this, stream.ReadLine().fromCsv(_delimeter));
 
                         if (addHeader)
                         {

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace analyticsLibrary.Statistics
 {
-    public static class extensions
+    public static class Extensions
     {
         public static double standardDeviation(this int[] values)
         {
