@@ -44,7 +44,7 @@ jobs:
         run: dotnet build -c Release --no-restore
 
       - name: Test
-        run: dotnet test -c Release --no-build --verbosity normal
+        run: dotnet test -c Release --no-build --verbosity normal --filter "Category!=Integration"
 
       - name: Pack all packages
         run: |

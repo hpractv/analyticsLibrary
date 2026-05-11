@@ -103,7 +103,14 @@ static List<List<string>> Chunk(IReadOnlyList<string> items, int size)
     var chunks = new List<List<string>>();
     for (var i = 0; i < items.Count; i += size)
     {
-        chunks.Add(items.Skip(i).Take(size).ToList());
+        var end = Math.Min(i + size, items.Count);
+        var chunk = new List<string>(end - i);
+        for (var j = i; j < end; j++)
+        {
+            chunk.Add(items[j]);
+        }
+
+        chunks.Add(chunk);
     }
 
     return chunks;

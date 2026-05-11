@@ -1,34 +1,27 @@
+using System.Net;
+using System.Net.Http;
 using analyticsLibrary.ReleaseTooling;
 
 namespace analyticsLibrary.ReleaseTooling.Tests;
 
-[Trait("Category", "Integration")]
 public class NuGetFlatContainerIntegrationTests
 {
     [Fact]
     public async Task Flat_container_index_for_core_has_versions_array()
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
-        Exception? last = null;
-        for (var attempt = 0; attempt < 3; attempt++)
-        {
-            try
+        var handler = new StubHttpMessageHandler(_ =>
+            new HttpResponseMessage(HttpStatusCode.OK)
             {
-                var json = await http.GetStringAsync(NuGetFlatContainerHttp.GetPackageIndexUri("analyticsLibrary.Core"));
-                var versions = FlatContainerIndexParser.ParseVersions(json);
-                Assert.NotEmpty(versions);
-                return;
-            }
-            catch (Exception ex)
-            {
-                last = ex;
-                if (attempt < 2)
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(2));
-                }
-            }
-        }
+                Content = new StringContent("""{"versions":["1.0.0","2.0.0"]}""")
+            });
+        using var http = new HttpClient(handler);
+        var versions = await NuGetFlatContainerHttp.GetPublishedVersionsAsync(http, "analyticsLibrary.Core");
+        Assert.NotEmpty(versions);
+    }
 
-        throw last ?? new InvalidOperationException("Flat container request failed.");
+    private sealed class StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> handler) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+            Task.FromResult(handler(request));
     }
 }
