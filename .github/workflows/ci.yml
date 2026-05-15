@@ -258,6 +258,8 @@ jobs:
       - build-test-pack
     if: github.event_name == 'push' && needs.build-test-pack.result == 'success'
     environment: nuget-release
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
