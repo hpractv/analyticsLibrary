@@ -11,8 +11,8 @@ public static class NuGetGalleryDeprecationApi
         bool hasCriticalBugs,
         bool isOther,
         string? customMessage,
-        string alternatePackageId,
-        string alternatePackageVersion,
+        string? alternatePackageId,
+        string? alternatePackageVersion,
         string apiKey)
     {
         if (versions.Count == 0)
@@ -46,8 +46,15 @@ public static class NuGetGalleryDeprecationApi
             pairs.Add(new KeyValuePair<string, string>("message", customMessage));
         }
 
-        pairs.Add(new KeyValuePair<string, string>("alternatePackageId", alternatePackageId));
-        pairs.Add(new KeyValuePair<string, string>("alternatePackageVersion", alternatePackageVersion));
+        if (!string.IsNullOrEmpty(alternatePackageId))
+        {
+            pairs.Add(new KeyValuePair<string, string>("alternatePackageId", alternatePackageId));
+        }
+
+        if (!string.IsNullOrEmpty(alternatePackageVersion))
+        {
+            pairs.Add(new KeyValuePair<string, string>("alternatePackageVersion", alternatePackageVersion));
+        }
         pairs.Add(new KeyValuePair<string, string>("listedVerb", "Unchanged"));
 
         var url = string.Format(DeprecationEndpointTemplate, Uri.EscapeDataString(packageId));
