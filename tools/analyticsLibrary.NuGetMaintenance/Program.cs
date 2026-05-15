@@ -52,6 +52,7 @@ else
 
 static async Task<int> RunAsync(HttpClient http, string apiKey, NuGetVersion releaseVersion, CancellationToken cancellationToken)
 {
+    // 40 matches the NuGet Gallery API's per-request version limit for deprecation batches
     const int chunkSize = 40;
     foreach (var packageId in ReleaseConstants.PackageIds)
     {
@@ -124,6 +125,7 @@ static async Task<int> RunAsync(HttpClient http, string apiKey, NuGetVersion rel
 
 static async Task<int> DeprecateBetasAsync(HttpClient http, string apiKey, CancellationToken cancellationToken)
 {
+    // 40 matches the NuGet Gallery API's per-request version limit for deprecation batches
     const int chunkSize = 40;
     foreach (var packageId in ReleaseConstants.PackageIds)
     {
@@ -157,7 +159,7 @@ static async Task<int> DeprecateBetasAsync(HttpClient http, string apiKey, Cance
                     hasCriticalBugs: false,
                     isOther: true,
                     ReleaseConstants.PrereleaseTestingDeprecationMessage,
-                    releaseVersion: null,
+                    alternateVersion: null,
                     cancellationToken)
                 .ConfigureAwait(false);
             if (code != 0)
@@ -197,7 +199,7 @@ static async Task<int> SendDeprecationAsync(
     bool hasCriticalBugs,
     bool isOther,
     string message,
-    NuGetVersion? releaseVersion,
+    NuGetVersion? alternateVersion,
     CancellationToken cancellationToken)
 {
     if (versions.Count == 0)
@@ -205,7 +207,7 @@ static async Task<int> SendDeprecationAsync(
         return 0;
     }
 
-    var normalizedRelease = releaseVersion?.ToNormalizedString();
+    var normalizedRelease = alternateVersion?.ToNormalizedString();
     using var request = NuGetGalleryDeprecationApi.CreateDeprecationRequest(
         packageId,
         versions,
