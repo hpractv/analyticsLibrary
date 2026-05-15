@@ -249,17 +249,23 @@ dotnet pack -c Release -o ./nupkgs
 
 **Beta packages (pull requests)**
 
-Opening or updating a pull request against `main` triggers `ci.yml`. The workflow builds, tests, packs beta packages versioned `2.0.0-beta.pr-<pr>.<run>`, and uploads them as workflow artifacts. Beta packages are only pushed to NuGet.org when the `NUGET_API_KEY` secret is available and the PR is not from a fork.
+Opening or updating a pull request against `main` triggers `ci.yml`. The workflow builds, tests, packs only the package projects whose `src/analyticsLibrary.*` paths changed (or when central/tooling paths change—see workflow filters), using beta versions read from each `.csproj` `<Version>` plus `-beta.pr-<pr>.<run>`. It uploads `.nupkg` files as workflow artifacts. Beta packages are pushed to NuGet.org only on the `pull_request` event when `NUGET_API_KEY` is set and the PR branch is from the same repository (not a fork). Merging the PR to `main` does **not** publish betas to NuGet.org.
 
-**Release packages**
+**Stable release packages**
 
-Push a version tag (e.g. `v2.0.0`) or trigger `release.yml` manually via workflow dispatch. The workflow:
-1. Builds and tests the solution from the tagged commit.
-2. Packs all seven packages.
-3. Verifies all expected `.nupkg` files are present.
-4. Deploys to NuGet.org under the `nuget-release` GitHub Environment, which requires explicit approval before the deploy step runs.
+Publishing a stable release to NuGet.org is **not** triggered by merging a pull request alone. You must either push a SemVer tag matching `v*.*.*` (for example `v3.0.0`) at the commit you want to ship, or run `release.yml` manually via **workflow dispatch** and enter the version (for example `3.0.0`).
+
+The `release.yml` workflow then:
+
+1. Builds and tests the full solution (including release-tooling tests under `tests/analyticsLibrary.ReleaseTooling.Tests/`).
+2. Packs **all seven** packages at the same release version (no path-based skipping).
+3. Verifies every expected `.nupkg` is present.
+4. Pushes packages to NuGet.org. This step uses the `nuget-release` GitHub Environment so you can require manual approval before anything is published.
+5. Deprecates previously published versions on NuGet.org: all CI beta builds whose versions contain `-beta.pr-` are marked with an “other” deprecation reason and a testing-only message; every older **stable** version below the version you just shipped is marked **legacy** with the message: `This package is legacy and is no longer maintained`. The deprecation client calls NuGet.org’s HTTP API (`PUT https://www.nuget.org/api/v2/package/{packageId}/deprecations`) using the same `NUGET_API_KEY`. The key must include permission to **push** and **unlist** (deprecation uses the unlist scope on nuget.org). If NuGet.org returns **403** for deprecation, the account may not yet have the manage-deprecation API enabled for API keys; in that case you can deprecate versions manually on nuget.org until the API is available.
 
 Store the NuGet API key as a repository secret named `NUGET_API_KEY`. Never commit credentials.
+
+CI also runs [actionlint](https://github.com/rhysd/actionlint) on workflow files.
 
 ---
 
