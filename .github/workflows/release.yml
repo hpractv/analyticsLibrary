@@ -71,8 +71,8 @@ jobs:
               exit 1
             fi
 
-            lower=$(printf '%s\n%s\n' "$V" "$current" | sort -V | head -n1)
-            if [ "$lower" != "$current" ] && [ "$V" != "$current" ]; then
+            max_version=$(printf '%s\n%s\n' "$V" "$current" | sort -V | tail -n1)
+            if [ "$max_version" != "$V" ]; then
               echo "ERROR: Requested release version $V is lower than project version $current in $csproj"
               exit 1
             fi
