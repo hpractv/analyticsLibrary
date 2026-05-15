@@ -11,13 +11,21 @@ public static class NuGetGalleryDeprecationApi
         bool hasCriticalBugs,
         bool isOther,
         string? customMessage,
-        string alternatePackageId,
-        string alternatePackageVersion,
+        string? alternatePackageId,
+        string? alternatePackageVersion,
         string apiKey)
     {
         if (versions.Count == 0)
         {
             throw new ArgumentException("At least one version is required.", nameof(versions));
+        }
+
+        var hasAltId = !string.IsNullOrEmpty(alternatePackageId);
+        var hasAltVersion = !string.IsNullOrEmpty(alternatePackageVersion);
+        if (hasAltId != hasAltVersion)
+        {
+            throw new ArgumentException(
+                "alternatePackageId and alternatePackageVersion must both be provided or both be omitted.");
         }
 
         var pairs = new List<KeyValuePair<string, string>>();
@@ -46,8 +54,15 @@ public static class NuGetGalleryDeprecationApi
             pairs.Add(new KeyValuePair<string, string>("message", customMessage));
         }
 
-        pairs.Add(new KeyValuePair<string, string>("alternatePackageId", alternatePackageId));
-        pairs.Add(new KeyValuePair<string, string>("alternatePackageVersion", alternatePackageVersion));
+        if (!string.IsNullOrEmpty(alternatePackageId))
+        {
+            pairs.Add(new KeyValuePair<string, string>("alternatePackageId", alternatePackageId));
+        }
+
+        if (!string.IsNullOrEmpty(alternatePackageVersion))
+        {
+            pairs.Add(new KeyValuePair<string, string>("alternatePackageVersion", alternatePackageVersion));
+        }
         pairs.Add(new KeyValuePair<string, string>("listedVerb", "Unchanged"));
 
         var url = string.Format(DeprecationEndpointTemplate, Uri.EscapeDataString(packageId));

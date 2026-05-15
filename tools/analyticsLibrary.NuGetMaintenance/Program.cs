@@ -2,32 +2,57 @@ using System.Net;
 using analyticsLibrary.ReleaseTooling;
 using NuGet.Versioning;
 
-if (args.Length < 2 || !string.Equals(args[0], "apply-deprecations", StringComparison.Ordinal))
+var command = args.Length > 0 ? args[0] : string.Empty;
+
+if (string.Equals(command, "apply-deprecations", StringComparison.Ordinal))
 {
-    Console.Error.WriteLine("Usage: analyticsLibrary.NuGetMaintenance apply-deprecations <releaseVersion>");
+    if (args.Length < 2)
+    {
+        Console.Error.WriteLine("Usage: analyticsLibrary.NuGetMaintenance apply-deprecations <releaseVersion>");
+        return 1;
+    }
+
+    var releaseRaw = args[1];
+    var release = VersionDeprecationPlanner.TryParseReleaseVersion(releaseRaw);
+    if (release is null)
+    {
+        Console.Error.WriteLine($"Invalid release version: {releaseRaw}");
+        return 1;
+    }
+
+    var apiKey = Environment.GetEnvironmentVariable("NUGET_API_KEY");
+    if (string.IsNullOrWhiteSpace(apiKey))
+    {
+        Console.Error.WriteLine("NUGET_API_KEY is not set.");
+        return 1;
+    }
+
+    using var http = new HttpClient();
+    return await RunAsync(http, apiKey, release, CancellationToken.None).ConfigureAwait(false);
+}
+else if (string.Equals(command, "deprecate-betas", StringComparison.Ordinal))
+{
+    var apiKey = Environment.GetEnvironmentVariable("NUGET_API_KEY");
+    if (string.IsNullOrWhiteSpace(apiKey))
+    {
+        Console.Error.WriteLine("NUGET_API_KEY is not set.");
+        return 1;
+    }
+
+    using var http = new HttpClient();
+    return await DeprecateBetasAsync(http, apiKey, CancellationToken.None).ConfigureAwait(false);
+}
+else
+{
+    Console.Error.WriteLine("Usage:");
+    Console.Error.WriteLine("  analyticsLibrary.NuGetMaintenance apply-deprecations <releaseVersion>");
+    Console.Error.WriteLine("  analyticsLibrary.NuGetMaintenance deprecate-betas");
     return 1;
 }
-
-var releaseRaw = args[1];
-var release = VersionDeprecationPlanner.TryParseReleaseVersion(releaseRaw);
-if (release is null)
-{
-    Console.Error.WriteLine($"Invalid release version: {releaseRaw}");
-    return 1;
-}
-
-var apiKey = Environment.GetEnvironmentVariable("NUGET_API_KEY");
-if (string.IsNullOrWhiteSpace(apiKey))
-{
-    Console.Error.WriteLine("NUGET_API_KEY is not set.");
-    return 1;
-}
-
-using var http = new HttpClient();
-return await RunAsync(http, apiKey, release, CancellationToken.None).ConfigureAwait(false);
 
 static async Task<int> RunAsync(HttpClient http, string apiKey, NuGetVersion releaseVersion, CancellationToken cancellationToken)
 {
+    // 40 matches the NuGet Gallery API's per-request version limit for deprecation batches
     const int chunkSize = 40;
     foreach (var packageId in ReleaseConstants.PackageIds)
     {
@@ -98,6 +123,55 @@ static async Task<int> RunAsync(HttpClient http, string apiKey, NuGetVersion rel
     return 0;
 }
 
+static async Task<int> DeprecateBetasAsync(HttpClient http, string apiKey, CancellationToken cancellationToken)
+{
+    // 40 matches the NuGet Gallery API's per-request version limit for deprecation batches
+    const int chunkSize = 40;
+    foreach (var packageId in ReleaseConstants.PackageIds)
+    {
+        IReadOnlyList<string> published;
+        try
+        {
+            published = await NuGetFlatContainerHttp.GetPublishedVersionsAsync(http, packageId, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to list versions for {packageId}: {ex.Message}");
+            return 1;
+        }
+
+        if (published.Count == 0)
+        {
+            Console.WriteLine($"No published versions found for {packageId}; skipping.");
+            continue;
+        }
+
+        var betas = published.Where(VersionDeprecationPlanner.IsCiBetaPrerelease).ToList();
+        foreach (var chunk in Chunk(betas, chunkSize))
+        {
+            var code = await SendDeprecationAsync(
+                    http,
+                    apiKey,
+                    packageId,
+                    chunk,
+                    isLegacy: false,
+                    hasCriticalBugs: false,
+                    isOther: true,
+                    ReleaseConstants.PrereleaseTestingDeprecationMessage,
+                    alternateVersion: null,
+                    cancellationToken)
+                .ConfigureAwait(false);
+            if (code != 0)
+            {
+                return code;
+            }
+        }
+    }
+
+    return 0;
+}
+
 static List<List<string>> Chunk(IReadOnlyList<string> items, int size)
 {
     var chunks = new List<List<string>>();
@@ -125,7 +199,7 @@ static async Task<int> SendDeprecationAsync(
     bool hasCriticalBugs,
     bool isOther,
     string message,
-    NuGetVersion releaseVersion,
+    NuGetVersion? alternateVersion,
     CancellationToken cancellationToken)
 {
     if (versions.Count == 0)
@@ -133,7 +207,7 @@ static async Task<int> SendDeprecationAsync(
         return 0;
     }
 
-    var normalizedRelease = releaseVersion.ToNormalizedString();
+    var normalizedRelease = alternateVersion?.ToNormalizedString();
     using var request = NuGetGalleryDeprecationApi.CreateDeprecationRequest(
         packageId,
         versions,
@@ -141,7 +215,7 @@ static async Task<int> SendDeprecationAsync(
         hasCriticalBugs,
         isOther,
         message,
-        packageId,
+        normalizedRelease is not null ? packageId : null,
         normalizedRelease,
         apiKey);
 

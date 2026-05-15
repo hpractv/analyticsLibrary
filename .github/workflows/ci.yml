@@ -250,3 +250,64 @@ jobs:
             --api-key "$NUGET_API_KEY" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
+
+  deploy-stable:
+    name: Deploy Stable Packages
+    runs-on: ubuntu-latest
+    needs:
+      - build-test-pack
+    if: github.event_name == 'push' && needs.build-test-pack.result == 'success'
+    environment: nuget-release
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore maintenance tool
+        run: dotnet restore tools/analyticsLibrary.NuGetMaintenance/analyticsLibrary.NuGetMaintenance.csproj
+
+      - name: Build maintenance tool
+        run: dotnet build -c Release --no-restore tools/analyticsLibrary.NuGetMaintenance/analyticsLibrary.NuGetMaintenance.csproj
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v7
+        with:
+          name: nuget-packages-${{ github.run_id }}
+          path: ./artifacts
+
+      - name: Publish stable packages
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "ERROR: NUGET_API_KEY is not set; cannot publish stable packages."
+            exit 1
+          fi
+
+          for pkg in ./artifacts/*.nupkg; do
+            if [[ "$pkg" == *"-beta.pr-"* ]]; then
+              echo "Skipping prerelease package: $(basename "$pkg")"
+              continue
+            fi
+            dotnet nuget push "$pkg" \
+              --api-key "$NUGET_API_KEY" \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          done
+
+      - name: Deprecate beta packages
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NUGET_API_KEY is not set; skipping beta deprecation."
+            exit 0
+          fi
+          dotnet run -c Release --no-build --project tools/analyticsLibrary.NuGetMaintenance -- deprecate-betas
