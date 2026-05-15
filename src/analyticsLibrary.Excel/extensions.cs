@@ -4,7 +4,7 @@ using System.Linq;
 using analyticsLibrary.Core;
 namespace analyticsLibrary.Excel
 {
-    public static class Extensions
+    public static class extensions
     {
         public static int columnNumber(this columnLettersEnum value)
         {
@@ -44,14 +44,14 @@ namespace analyticsLibrary.Excel
             }
         }
 
-        public static object rowValue<TMember>(this DataRow row, string field)
+        public static object rowValue<type>(this DataRow row, string field)
         {
-            return row.rowValue<TMember, object>(field);
+            return row.rowValue<type, object>(field);
         }
-        public static TField rowValue<TMember, TField>(this DataRow row, string field)
+        public static valueType rowValue<type, valueType>(this DataRow row, string field)
         {
             var fieldName = string.Empty;
-            var attributes = typeof(TMember).GetMember(field)[0]
+            var attributes = typeof(type).GetMember(field)[0]
                 .GetCustomAttributes(true);
             var attribute = attributes.FirstOrDefault(f => f is sheetColumnAttribute) as sheetColumnAttribute;
 
@@ -66,12 +66,11 @@ namespace analyticsLibrary.Excel
                     }
                 }
             }
-            if (string.IsNullOrWhiteSpace(fieldName)) throw new ColumnNotFoundException();
-            if (!row.containsColumn(fieldName)) throw new ColumnNotFoundException();
+            if (string.IsNullOrWhiteSpace(fieldName)) throw new columnNotFoundException();
+            if (!row.containsColumn(fieldName)) throw new columnNotFoundException();
 
-            return (TField)(row.IsNull(fieldName) ? null : row.Field<object>(fieldName));
+            return (valueType)(row.IsNull(fieldName) ? null : row.Field<object>(fieldName));
         }
+        public class columnNotFoundException : ApplicationException { }
     }
-
-    public class ColumnNotFoundException : ApplicationException { }
 }

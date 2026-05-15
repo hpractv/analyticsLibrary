@@ -111,7 +111,7 @@ namespace analyticsLibrary.Core.Tests
 
                 rows.writeCsv(tempFile, header, ',');
 
-                var csvReader = new Csv(tempFile);
+                var csvReader = new csv(tempFile);
                 var data = csvReader.data.ToList();
 
                 Assert.Equal(2, data.Count);

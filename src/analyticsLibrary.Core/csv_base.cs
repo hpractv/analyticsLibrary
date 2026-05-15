@@ -125,22 +125,22 @@ namespace analyticsLibrary.Core
             return false;
         }
 
-        protected List<Data<string>> _records;
+        protected List<data<string>> _records;
 
-        public IEnumerable<Data<string>> records
+        public IEnumerable<data<string>> records
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (_records == null)
                 {
-                    _records = new List<Data<string>>();
+                    _records = new List<data<string>>();
 
                     var stream = new StreamReader(this._file);
                     var addHeader = _hasHeader;
                     while (stream.Peek() > -1)
                     {
-                        var record = new Data<string>(this, stream.ReadLine().fromCsv(_delimeter));
+                        var record = new data<string>(this, stream.ReadLine().fromCsv(_delimeter));
 
                         if (addHeader)
                         {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace analyticsLibrary.Core
 {
-    public static class Presentation
+    public static class presentation
     {
         private const string hexColor = @"^#(((?<r>[a-fA-F\d]{2}?)(?<g>[a-fA-F\d]{2}?)(?<b>[a-fA-F\d]{2}?))|((?<r>[a-fA-F\d]{1}?)(?<g>[a-fA-F\d]{1}?)(?<b>[a-fA-F\d]{1}?)))$";
         private static Regex colorCheck = new Regex(hexColor, RegexOptions.Singleline | RegexOptions.Compiled);

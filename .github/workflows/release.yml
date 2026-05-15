@@ -46,17 +46,49 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build --verbosity normal --filter "Category!=Integration"
 
+      - name: Validate release version against project versions
+        run: |
+          V="${{ steps.version.outputs.VERSION }}"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "ERROR: Release version must be SemVer major.minor.patch (got '$V')."
+            exit 1
+          fi
+
+          PROJECTS=(
+            src/analyticsLibrary.Core/analyticsLibrary.Core.csproj
+            src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj
+            src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj
+            src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj
+            src/analyticsLibrary.Access/analyticsLibrary.Access.csproj
+            src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj
+            src/analyticsLibrary/analyticsLibrary.csproj
+          )
+
+          for csproj in "${PROJECTS[@]}"; do
+            current=$(grep -oPm1 '<Version>\K[^<]+' "$csproj")
+            if [ -z "$current" ]; then
+              echo "ERROR: Could not read <Version> from $csproj"
+              exit 1
+            fi
+
+            lower=$(printf '%s\n%s\n' "$V" "$current" | sort -V | head -n1)
+            if [ "$lower" != "$current" ] && [ "$V" != "$current" ]; then
+              echo "ERROR: Requested release version $V is lower than project version $current in $csproj"
+              exit 1
+            fi
+          done
+
       - name: Pack all packages
         run: |
           mkdir -p ./artifacts
           V="${{ steps.version.outputs.VERSION }}"
-          dotnet pack src/analyticsLibrary.Core/analyticsLibrary.Core.csproj -c Release --no-build -p:Version=$V -o ./artifacts
-          dotnet pack src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj -c Release --no-build -p:Version=$V -o ./artifacts
-          dotnet pack src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj -c Release --no-build -p:Version=$V -o ./artifacts
-          dotnet pack src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj -c Release --no-build -p:Version=$V -o ./artifacts
-          dotnet pack src/analyticsLibrary.Access/analyticsLibrary.Access.csproj -c Release --no-build -p:Version=$V -o ./artifacts
-          dotnet pack src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj -c Release --no-build -p:Version=$V -o ./artifacts
-          dotnet pack src/analyticsLibrary/analyticsLibrary.csproj -c Release --no-build -p:Version=$V -o ./artifacts
+          dotnet pack src/analyticsLibrary.Core/analyticsLibrary.Core.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
+          dotnet pack src/analyticsLibrary.Algorithms/analyticsLibrary.Algorithms.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
+          dotnet pack src/analyticsLibrary.Statistics/analyticsLibrary.Statistics.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
+          dotnet pack src/analyticsLibrary.Excel/analyticsLibrary.Excel.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
+          dotnet pack src/analyticsLibrary.Access/analyticsLibrary.Access.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
+          dotnet pack src/analyticsLibrary.Hadoop/analyticsLibrary.Hadoop.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
+          dotnet pack src/analyticsLibrary/analyticsLibrary.csproj -c Release --no-build "-p:Version=$V" -o ./artifacts
 
       - name: Inspect packages
         run: |
@@ -84,7 +116,7 @@ jobs:
       - name: Deploy to NuGet
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
-            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --api-key "${{ secrets.NUGET_API_KEY }}" \
             --source https://api.nuget.org/v3/index.json \
             --skip-duplicate
 

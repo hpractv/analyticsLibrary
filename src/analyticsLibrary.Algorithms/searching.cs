@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace analyticsLibrary.Algorithms
 {
-    public static class Searching
+    public static class searching
     {
         private static bool stringSearch(object value1, object value2) => string.Compare(value1.ToString(), value2.ToString()) <= 0;
 

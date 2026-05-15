@@ -3,7 +3,7 @@
 namespace analyticsLibrary.Core
 {
     [Serializable]
-    public class Column
+    public class column
     {
         public string parentTable { get; set; }
         public string name { get; set; }

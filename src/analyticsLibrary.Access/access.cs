@@ -6,11 +6,11 @@ using System.Linq;
 
 namespace analyticsLibrary.Access
 {
-    public class Access
+    public class access
     {
         public string filePath { get; private set; }
 
-        public Access(string filePath) => this.filePath = filePath;
+        public access(string filePath) => this.filePath = filePath;
 
         private OleDbConnection _connection;
 
@@ -37,7 +37,7 @@ namespace analyticsLibrary.Access
             return results.Rows.Cast<DataRow>();
         }
 
-        public IEnumerable<Table> tablesByName(string tableName = null)
+        public IEnumerable<table> tablesByName(string tableName = null)
         {
             var results = (IEnumerable<DataRow>)null;
 
@@ -54,7 +54,7 @@ namespace analyticsLibrary.Access
             }
 
             return results?
-                .Select(r => new Table()
+                .Select(r => new table()
                 {
                     schema = r.Field<string>("TABLE_SCHEMA"),
                     name = r.Field<string>("TABLE_NAME"),
@@ -62,7 +62,7 @@ namespace analyticsLibrary.Access
                 .Where(r => tableName == null || (tableName != null && r.name.ToLower().Contains(tableName.ToLower())));
         }
 
-        private IEnumerable<Column> columns()
+        private IEnumerable<column> columns()
         {
             var results = (IEnumerable<DataRow>)null;
 
@@ -79,7 +79,7 @@ namespace analyticsLibrary.Access
             }
 
             return results?
-                .Select(c => new Column()
+                .Select(c => new column()
                 {
                     parentTable = c["table_name"].ToString(),
                     name = c["column_name"].ToString(),
@@ -89,13 +89,13 @@ namespace analyticsLibrary.Access
                 });
         }
 
-        public IEnumerable<Column> columnsByTable(string tableName = null)
+        public IEnumerable<column> columnsByTable(string tableName = null)
         {
             return columns()
                 ?.Where(r => tableName == null || (tableName != null && r.parentTable.ToLower().Contains(tableName.ToLower())));
         }
 
-        public IEnumerable<Column> columnsByName(string columnName = null)
+        public IEnumerable<column> columnsByName(string columnName = null)
         {
             return columns()
                 ?.Where(r => columnName == null || (columnName != null && r.name.ToLower().Contains(columnName.ToLower())));

@@ -4,7 +4,7 @@ using System.Reflection;
 
 namespace analyticsLibrary.Core
 {
-    internal static class Utility
+    internal static class utility
     {
         internal static string assemblyDirectory
         {

@@ -86,7 +86,7 @@ namespace analyticsLibrary.Algorithms.Tests
         [Fact]
         public void PickFunction_Int_ReturnsLessOrEqualForAscending()
         {
-            var fn = Sorting.pickFunction<int>(descending: false);
+            var fn = sorting.pickFunction<int>(descending: false);
             Assert.True(fn(1, 2));
             Assert.True(fn(2, 2));
             Assert.False(fn(3, 2));
@@ -95,7 +95,7 @@ namespace analyticsLibrary.Algorithms.Tests
         [Fact]
         public void PickFunction_Double_ReturnsExpectedComparison()
         {
-            var fn = Sorting.pickFunction<double>(descending: false);
+            var fn = sorting.pickFunction<double>(descending: false);
             Assert.True(fn(1.5, 2.5));
             Assert.False(fn(2.5, 1.5));
         }
@@ -103,7 +103,7 @@ namespace analyticsLibrary.Algorithms.Tests
         [Fact]
         public void PickFunction_String_ComparesLexicographically()
         {
-            var fn = Sorting.pickFunction<string>(descending: false);
+            var fn = sorting.pickFunction<string>(descending: false);
             Assert.True(fn("apple", "banana"));
             Assert.False(fn("zebra", "ant"));
         }

@@ -110,21 +110,21 @@ namespace analyticsLibrary.Core
             private set => _recordCount = value;
         }
 
-        public Data<string> nextRecord
+        public data<string> nextRecord
         {
             get
             {
                 if (_header == null) buildHeader();
                 if (!endOfFile)
                 {
-                    var data = new Data<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
+                    var data = new data<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
                     if (recordCount++ == 1 && _hasHeader)
-                        data = new Data<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
+                        data = new data<string>(this, _stream.ReadLine().fromCsv(this._delimeter));
 
                     return data;
                 }
 
-                return default(Data<string>);
+                return default(data<string>);
             }
         }
 
