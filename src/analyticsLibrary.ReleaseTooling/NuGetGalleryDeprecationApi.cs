@@ -20,6 +20,14 @@ public static class NuGetGalleryDeprecationApi
             throw new ArgumentException("At least one version is required.", nameof(versions));
         }
 
+        var hasAltId = !string.IsNullOrEmpty(alternatePackageId);
+        var hasAltVersion = !string.IsNullOrEmpty(alternatePackageVersion);
+        if (hasAltId != hasAltVersion)
+        {
+            throw new ArgumentException(
+                "alternatePackageId and alternatePackageVersion must both be provided or both be omitted.");
+        }
+
         var pairs = new List<KeyValuePair<string, string>>();
         for (var i = 0; i < versions.Count; i++)
         {
